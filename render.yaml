@@ -1,0 +1,10 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Connect this repo on Render (New > Blueprint) and it provisions the service.
+services:
+  - type: web
+    name: nocando
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true

@@ -146,6 +146,33 @@ curl -F "file=@static/samples/sample_cohort.csv"   http://localhost:8000/api/pre
 
 ---
 
+## Deploy (public URL)
+
+The repo ships a portable **`Dockerfile`** that installs dependencies, **bakes the
+trained model into the image at build time** (so the live service boots fast), and
+serves on the host-provided `$PORT`. It runs as-is on Render, Railway, Fly.io,
+Google Cloud Run, or a Hugging Face Space (Docker SDK).
+
+**Render (one-click-ish):**
+
+1. Push this repo to GitHub (done).
+2. On [render.com](https://render.com) → **New → Blueprint**, connect the repo.
+   Render reads [`render.yaml`](render.yaml) and provisions a free web service.
+3. Wait for the build; your app is live at `https://<name>.onrender.com`.
+
+**Any Docker host / locally:**
+
+```bash
+docker build -t nocando .
+docker run -p 8000:8000 nocando      # open http://localhost:8000
+```
+
+> The free Render tier sleeps after inactivity, so the first request after idle
+> takes a few seconds to wake — the model itself is already baked in, so no
+> retraining happens at runtime.
+
+---
+
 ## Project layout
 
 ```
