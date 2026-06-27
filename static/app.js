@@ -9,8 +9,9 @@ const submitBtn = $("submitBtn");
 const form = $("uploadForm");
 
 let selectedFile = null;
-let mode = "single";          // "single" | "batch"
+let mode = "single";          // "single" | "manual" | "batch"
 let lastBatch = null;         // cached cohort result for CSV export
+let currentSample = null;     // parsed sample behind the current single result (for sharing)
 
 /* ---- model stats in the header ---- */
 async function loadStats() {
@@ -84,6 +85,7 @@ async function loadSchema() {
                step="${c.step}" value="${c.default}"
                oninput="document.getElementById('val_${c.key}').textContent = this.value" />
       </label>`).join("");
+    restoreFromUrl();   // form exists now; replay a shared case if present
   } catch (_) { /* manual mode just won't populate */ }
 }
 loadSchema();
@@ -97,6 +99,41 @@ function collectManualSample() {
     out[r.dataset.key] = parseFloat(r.value);
   });
   return out;
+}
+
+function applyManualSample(s) {
+  if (s.cancer_type) $("m_cancer_type").value = s.cancer_type;
+  document.querySelectorAll('#mutChecks input[type="checkbox"]').forEach((cb) => {
+    cb.checked = Number(s[cb.dataset.key]) >= 0.5;
+  });
+  document.querySelectorAll('#contSliders input[type="range"]').forEach((r) => {
+    if (s[r.dataset.key] != null) {
+      r.value = s[r.dataset.key];
+      const lbl = $("val_" + r.dataset.key);
+      if (lbl) lbl.textContent = r.value;
+    }
+  });
+}
+
+/* ---- shareable case links (profile encoded in the URL) ---- */
+function encodeCase(o) {
+  return btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function decodeCase(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  return JSON.parse(atob(s));
+}
+
+function restoreFromUrl() {
+  const c = new URLSearchParams(location.search).get("case");
+  if (!c) return;
+  let sample;
+  try { sample = decodeCase(c); } catch (_) { return; }
+  document.querySelector('.mode[data-mode="manual"]').click();  // switch to manual view
+  applyManualSample(sample);
+  if (form.requestSubmit) form.requestSubmit();
+  else form.dispatchEvent(new Event("submit", { cancelable: true }));
 }
 
 /* ---- file selection ---- */
@@ -168,6 +205,8 @@ form.addEventListener("submit", async (e) => {
 function renderSingle(d) {
   $("placeholder").hidden = true;
   $("results").hidden = false;
+  currentSample = d.parsed_sample || null;
+  $("shareBtn").hidden = !currentSample;
 
   const top = d.ranked[0];
   $("recName").textContent = top.therapy;
@@ -251,6 +290,25 @@ function renderBatch(d) {
   $("batchWarnings").innerHTML = warns.length
     ? warns.map((w) => `<div class="warn">⚠ ${escapeHtml(w)}</div>`).join("")
     : "<p class='hint'>No parsing issues.</p>";
+}
+
+$("shareBtn").addEventListener("click", async () => {
+  if (!currentSample) return;
+  const url = location.origin + location.pathname + "?case=" + encodeCase(currentSample);
+  try {
+    await navigator.clipboard.writeText(url);
+    flashShare("✓ Link copied!");
+  } catch (_) {
+    window.prompt("Copy this shareable link:", url);
+  }
+});
+
+function flashShare(msg) {
+  const b = $("shareBtn");
+  const orig = b.textContent;
+  b.textContent = msg;
+  b.classList.add("ok");
+  setTimeout(() => { b.textContent = orig; b.classList.remove("ok"); }, 1800);
 }
 
 $("downloadCsv").addEventListener("click", () => {

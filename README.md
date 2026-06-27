@@ -29,6 +29,10 @@ Three input modes:
 - **Cohort (batch)** — upload one tumor per row, get a ranked recommendation
   table for the whole cohort with **CSV export**.
 
+Any single result has a **Share this case** button that copies a link with the
+tumor profile encoded in the URL; opening it re-fills the form and reproduces
+the result (fully client-side, no stored data).
+
 ### Model performance (held-out test set, 1,800 samples)
 
 | Metric | Value |

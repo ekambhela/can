@@ -306,3 +306,13 @@ table.cohort td.muted { color: var(--muted); }
 .slider input[type="range"] {
   width: 100%; accent-color: var(--accent); cursor: pointer;
 }
+
+/* ---- share button ---- */
+.share-btn {
+  font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px;
+  cursor: pointer; font-family: inherit; color: var(--accent);
+  background: rgba(91,140,255,.10); border: 1px solid rgba(91,140,255,.35);
+  transition: .14s;
+}
+.share-btn:hover { background: rgba(91,140,255,.20); border-color: var(--accent); }
+.share-btn.ok { color: #6ee7b7; background: rgba(52,211,153,.14); border-color: rgba(52,211,153,.45); }
