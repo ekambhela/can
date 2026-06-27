@@ -1,11 +1,11 @@
-# OncoMatch — Tumor → Chemotherapy Matcher
+# NoCanDo — Tumor → Chemotherapy Matcher
 
 A web application that matches a tumor sample to its **most effective therapy**
 with as much precision as the model can muster. Upload a tumor profile and the
 model ranks a panel of 15 chemotherapies and targeted agents by predicted drug
 sensitivity, and explains the biomarkers behind each match.
 
-> ⚠️ **Research / educational use only.** OncoMatch is a demonstration of
+> ⚠️ **Research / educational use only.** NoCanDo is a demonstration of
 > pharmacogenomic drug-response modeling. It is **not** a validated clinical
 > decision-support tool and must not be used to guide patient care.
 

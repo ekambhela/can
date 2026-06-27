@@ -1,5 +1,5 @@
 """
-OncoMatch — Tumor → Chemotherapy matching web service.
+NoCanDo — Tumor → Chemotherapy matching web service.
 
 FastAPI backend that serves the single-page UI and exposes a prediction
 endpoint. A tumor sample file is uploaded, parsed, and ranked against the
@@ -29,7 +29,7 @@ from model.predict import (
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-app = FastAPI(title="OncoMatch", version="1.1.0")
+app = FastAPI(title="NoCanDo", version="1.1.0")
 app.mount("/static", StaticFiles(directory=os.path.join(BASE, "static")), name="static")
 
 MAX_BYTES = 2 * 1024 * 1024  # 2 MB upload cap

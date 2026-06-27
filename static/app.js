@@ -206,7 +206,7 @@ $("downloadCsv").addEventListener("click", () => {
   const blob = new Blob([lines.join("\n")], { type: "text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "oncomatch_cohort_results.csv";
+  a.download = "nocando_cohort_results.csv";
   a.click();
   URL.revokeObjectURL(a.href);
 });
