@@ -388,3 +388,34 @@ def predict_batch(samples: list[dict]) -> dict:
         })
     return {"n": len(rows), "therapies": therapies, "rows": rows,
             "model_metrics": bundle.get("metrics", {})}
+
+
+# ---------------------------------------------------------------------------
+# Manual-entry support (schema + dict → sample)
+# ---------------------------------------------------------------------------
+CANCER_LABEL = {
+    "breast": "Breast", "lung_nsclc": "Lung (NSCLC)", "ovarian": "Ovarian",
+    "colorectal": "Colorectal", "melanoma": "Melanoma", "pancreatic": "Pancreatic",
+    "gastric": "Gastric", "glioma": "Glioma",
+}
+
+
+def feature_schema() -> dict:
+    """Describe the input fields so the UI can build a manual-entry form."""
+    cancers = [{"key": c, "label": CANCER_LABEL.get(c, c)} for c in CANCER_TYPES]
+    muts = [{"key": k, "label": FEATURE_LABEL.get(k, k)} for k in MUTATION_FEATURES]
+    cont = []
+    for k in CONTINUOUS_FEATURES:
+        mean, _sd, lo, hi = CONTINUOUS_PRIORS[k]
+        cont.append({
+            "key": k, "label": FEATURE_LABEL.get(k, k),
+            "min": lo, "max": hi,
+            "step": 1 if (hi - lo) > 5 else 0.05,
+            "default": round(mean, 2),
+        })
+    return {"cancer_types": cancers, "mutations": muts, "continuous": cont}
+
+
+def sample_from_dict(d: dict) -> tuple[dict, list[str]]:
+    """Coerce + impute a raw feature dict (e.g. from the manual form)."""
+    return _normalize({str(k): v for k, v in d.items()})

@@ -1,11 +1,11 @@
-# NoCanDo — Tumor → Chemotherapy Matcher
+# Karkive — Tumor → Chemotherapy Matcher
 
 A web application that matches a tumor sample to its **most effective therapy**
 with as much precision as the model can muster. Upload a tumor profile and the
 model ranks a panel of 15 chemotherapies and targeted agents by predicted drug
 sensitivity, and explains the biomarkers behind each match.
 
-> ⚠️ **Research / educational use only.** NoCanDo is a demonstration of
+> ⚠️ **Research / educational use only.** Karkive is a demonstration of
 > pharmacogenomic drug-response modeling. It is **not** a validated clinical
 > decision-support tool and must not be used to guide patient care.
 
@@ -21,9 +21,11 @@ sensitivity, and explains the biomarkers behind each match.
    ranking** with uncertainty bands, and a quantified breakdown of the
    **supporting biomarkers** and **resistance cautions** behind the match.
 
-Two modes:
+Three input modes:
 
-- **Single sample** — one tumor, full ranked explanation with intervals.
+- **Single file** — upload one tumor (CSV/TSV/JSON), full ranked explanation with intervals.
+- **Manual entry** — fill in the tumor profile directly with dropdowns, toggles,
+  and sliders (no file needed); the form is generated from the model schema.
 - **Cohort (batch)** — upload one tumor per row, get a ranked recommendation
   table for the whole cohort with **CSV export**.
 
@@ -134,8 +136,10 @@ python -m model.train
 
 - `GET  /` — the web UI
 - `GET  /api/health` — model status + metrics
+- `GET  /api/schema` — input-field schema (drives the manual-entry form)
 - `POST /api/predict` — multipart upload (`file=<sample>`) → ranked JSON with
   intervals + per-feature attribution for one tumor
+- `POST /api/predict_form` — JSON body (`{feature: value, …}`) → same ranked JSON
 - `POST /api/predict_batch` — multipart upload (`file=<cohort>`) → ranked table
   (one row per tumor)
 
@@ -163,8 +167,8 @@ Google Cloud Run, or a Hugging Face Space (Docker SDK).
 **Any Docker host / locally:**
 
 ```bash
-docker build -t nocando .
-docker run -p 8000:8000 nocando      # open http://localhost:8000
+docker build -t karkive .
+docker run -p 8000:8000 karkive      # open http://localhost:8000
 ```
 
 > The free Render tier sleeps after inactivity, so the first request after idle

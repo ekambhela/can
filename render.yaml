@@ -2,7 +2,7 @@
 # Connect this repo on Render (New > Blueprint) and it provisions the service.
 services:
   - type: web
-    name: nocando
+    name: karkive
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile

@@ -1,4 +1,4 @@
-# NoCanDo — container image for any web host (Render, Railway, Fly, Cloud Run,
+# Karkive — container image for any web host (Render, Railway, Fly, Cloud Run,
 # Hugging Face Spaces with the Docker SDK, etc.)
 FROM python:3.11-slim
 

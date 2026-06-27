@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NoCanDo · Tumor → Chemotherapy Matcher</title>
+  <title>Karkive · Tumor → Chemotherapy Matcher</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
@@ -13,7 +13,7 @@
     <div class="brand">
       <span class="logo" aria-hidden="true">⬡</span>
       <div>
-        <h1>NoCanDo</h1>
+        <h1>Karkive</h1>
         <p class="tagline">Precision tumor-to-chemotherapy matching</p>
       </div>
     </div>
@@ -40,7 +40,8 @@
       <!-- Upload card -->
       <div class="card upload-card">
         <div class="mode-toggle" role="tablist" aria-label="Prediction mode">
-          <button type="button" class="mode active" data-mode="single" role="tab">Single sample</button>
+          <button type="button" class="mode active" data-mode="single" role="tab">Single file</button>
+          <button type="button" class="mode" data-mode="manual" role="tab">Manual entry</button>
           <button type="button" class="mode" data-mode="batch" role="tab">Cohort (batch)</button>
         </div>
 
@@ -53,6 +54,23 @@
             <span class="dz-sub" id="dzSub">CSV · TSV · JSON — a single tumor sample</span>
           </label>
           <div class="file-meta" id="fileMeta" hidden></div>
+
+          <!-- manual-entry form, built from /api/schema -->
+          <div class="manual-panel" id="manualPanel" hidden>
+            <label class="field">
+              <span class="field-label">Cancer type</span>
+              <select id="m_cancer_type"></select>
+            </label>
+            <div class="field-group">
+              <span class="group-title">Genomic alterations <small>(toggle any present)</small></span>
+              <div class="checks" id="mutChecks"></div>
+            </div>
+            <div class="field-group">
+              <span class="group-title">Expression &amp; clinical</span>
+              <div class="sliders" id="contSliders"></div>
+            </div>
+          </div>
+
           <button type="submit" class="btn primary" id="submitBtn" disabled>
             Match therapy
           </button>
@@ -147,7 +165,7 @@
 
     <section class="disclaimer">
       <strong>Research / educational use only.</strong>
-      NoCanDo is a demonstration of pharmacogenomic drug-response modeling. It
+      Karkive is a demonstration of pharmacogenomic drug-response modeling. It
       is <em>not</em> a validated clinical decision-support tool and must not be
       used to guide patient care. Treatment decisions require a qualified
       oncologist and validated diagnostics.
@@ -155,7 +173,7 @@
   </main>
 
   <footer>
-    <span>NoCanDo · gradient-boosted multi-output drug-response model with quantile uncertainty</span>
+    <span>Karkive · gradient-boosted multi-output drug-response model with quantile uncertainty</span>
     <a href="/api/health" target="_blank" rel="noopener">model status</a>
   </footer>
 

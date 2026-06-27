@@ -32,24 +32,72 @@ document.querySelectorAll(".mode").forEach((btn) => {
     document.querySelectorAll(".mode").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     mode = btn.dataset.mode;
-    const single = mode === "single";
-    $("uploadTitle").textContent = single ? "1 · Upload tumor sample" : "1 · Upload cohort file";
-    $("dzSub").textContent = single
-      ? "CSV · TSV · JSON — a single tumor sample"
-      : "CSV · TSV · JSON — one tumor per row";
-    $("resultTitle").textContent = single ? "2 · Recommended therapy" : "2 · Cohort recommendations";
-    $("samplesLabel").textContent = single ? "No sample handy? Try one:" : "No cohort handy? Try one:";
-    $("singleChips").hidden = !single;
-    $("batchChips").hidden = single;
-    submitBtn.textContent = single ? "Match therapy" : "Match cohort";
+    const single = mode === "single", manual = mode === "manual", batch = mode === "batch";
+
+    $("uploadTitle").textContent = manual ? "1 · Enter tumor profile"
+      : batch ? "1 · Upload cohort file" : "1 · Upload tumor sample";
+    $("resultTitle").textContent = batch ? "2 · Cohort recommendations" : "2 · Recommended therapy";
+
+    // show the right input affordance
+    $("dropzone").hidden = manual;
+    $("manualPanel").hidden = !manual;
+    document.querySelector(".samples").hidden = manual;
+    if (!manual) {
+      $("dzSub").textContent = single
+        ? "CSV · TSV · JSON — a single tumor sample"
+        : "CSV · TSV · JSON — one tumor per row";
+      $("samplesLabel").textContent = single ? "No sample handy? Try one:" : "No cohort handy? Try one:";
+      $("singleChips").hidden = !single;
+      $("batchChips").hidden = single;
+    }
+
+    submitBtn.textContent = batch ? "Match cohort" : "Match therapy";
+    // in manual mode the form is always submittable; file modes need a file
+    submitBtn.disabled = manual ? false : !selectedFile;
+    if (!manual) $("fileMeta").hidden = !selectedFile;
+
     // reset view
     $("results").hidden = true; $("batchResults").hidden = true; $("errorBox").hidden = true;
     $("placeholder").hidden = false;
-    $("placeholder").innerHTML = single
-      ? `<span aria-hidden="true">🧬</span><p>Upload a sample to see the ranked match.</p>`
-      : `<span aria-hidden="true">📋</span><p>Upload a cohort to rank every patient.</p>`;
+    $("placeholder").innerHTML = batch
+      ? `<span aria-hidden="true">📋</span><p>Upload a cohort to rank every patient.</p>`
+      : manual
+      ? `<span aria-hidden="true">🧬</span><p>Fill in the profile and match a therapy.</p>`
+      : `<span aria-hidden="true">🧬</span><p>Upload a sample to see the ranked match.</p>`;
   });
 });
+
+/* ---- build the manual-entry form from the schema ---- */
+async function loadSchema() {
+  try {
+    const s = await (await fetch("/api/schema")).json();
+    $("m_cancer_type").innerHTML = s.cancer_types
+      .map((c) => `<option value="${c.key}">${escapeHtml(c.label)}</option>`).join("");
+    $("mutChecks").innerHTML = s.mutations.map((m) => `
+      <label class="check"><input type="checkbox" data-key="${m.key}" />
+        <span>${escapeHtml(m.label)}</span></label>`).join("");
+    $("contSliders").innerHTML = s.continuous.map((c) => `
+      <label class="slider">
+        <span class="slider-head">${escapeHtml(c.label)}
+          <b id="val_${c.key}">${c.default}</b></span>
+        <input type="range" data-key="${c.key}" min="${c.min}" max="${c.max}"
+               step="${c.step}" value="${c.default}"
+               oninput="document.getElementById('val_${c.key}').textContent = this.value" />
+      </label>`).join("");
+  } catch (_) { /* manual mode just won't populate */ }
+}
+loadSchema();
+
+function collectManualSample() {
+  const out = { cancer_type: $("m_cancer_type").value };
+  document.querySelectorAll('#mutChecks input[type="checkbox"]').forEach((cb) => {
+    out[cb.dataset.key] = cb.checked ? 1 : 0;
+  });
+  document.querySelectorAll('#contSliders input[type="range"]').forEach((r) => {
+    out[r.dataset.key] = parseFloat(r.value);
+  });
+  return out;
+}
 
 /* ---- file selection ---- */
 function setFile(file) {
@@ -77,32 +125,42 @@ dropzone.addEventListener("drop", (e) => {
 /* ---- submit ---- */
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (!selectedFile) return;
+  if (mode !== "manual" && !selectedFile) return;
 
   $("errorBox").hidden = true;
   $("results").hidden = true;
   $("batchResults").hidden = true;
   $("placeholder").hidden = false;
-  $("placeholder").innerHTML = `<span class="spinner"></span><p>${mode === "single" ? "Matching therapy…" : "Ranking cohort…"}</p>`;
+  $("placeholder").innerHTML = `<span class="spinner"></span><p>${mode === "batch" ? "Ranking cohort…" : "Matching therapy…"}</p>`;
   submitBtn.disabled = true;
   submitBtn.innerHTML = `<span class="spinner"></span>Analyzing…`;
 
   try {
-    const fd = new FormData();
-    fd.append("file", selectedFile);
-    const url = mode === "single" ? "/api/predict" : "/api/predict_batch";
-    const r = await fetch(url, { method: "POST", body: fd });
+    let r;
+    if (mode === "manual") {
+      r = await fetch("/api/predict_form", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(collectManualSample()),
+      });
+    } else {
+      const fd = new FormData();
+      fd.append("file", selectedFile);
+      r = await fetch(mode === "batch" ? "/api/predict_batch" : "/api/predict", {
+        method: "POST", body: fd,
+      });
+    }
     const data = await r.json();
     if (!r.ok) throw new Error(data.detail || "Prediction failed.");
-    mode === "single" ? renderSingle(data) : renderBatch(data);
+    mode === "batch" ? renderBatch(data) : renderSingle(data);
   } catch (err) {
     $("placeholder").hidden = true;
     const box = $("errorBox");
     box.hidden = false;
     box.textContent = "⚠ " + err.message;
   } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = mode === "single" ? "Match therapy" : "Match cohort";
+    submitBtn.disabled = mode === "manual" ? false : !selectedFile;
+    submitBtn.textContent = mode === "batch" ? "Match cohort" : "Match therapy";
   }
 });
 
@@ -206,7 +264,7 @@ $("downloadCsv").addEventListener("click", () => {
   const blob = new Blob([lines.join("\n")], { type: "text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "nocando_cohort_results.csv";
+  a.download = "karkive_cohort_results.csv";
   a.click();
   URL.revokeObjectURL(a.href);
 });
