@@ -21,6 +21,7 @@
       <span class="stat"><b id="statTop1">—</b><small>top-1 accuracy</small></span>
       <span class="stat"><b id="statTop3">—</b><small>top-3 accuracy</small></span>
       <span class="stat"><b id="statR2">—</b><small>mean R²</small></span>
+      <span class="stat"><b id="statCov">—</b><small>interval coverage</small></span>
     </div>
   </header>
 
@@ -30,20 +31,26 @@
       <p>
         Upload a tumor profile and the model ranks a panel of
         <span id="nTherapies">15</span> chemotherapies and targeted agents by
-        predicted sensitivity — with the biomarkers that drove each match.
+        predicted sensitivity — with uncertainty bands and the biomarkers that
+        drove each match.
       </p>
     </section>
 
     <section class="grid">
       <!-- Upload card -->
       <div class="card upload-card">
-        <h3>1 · Upload tumor sample</h3>
+        <div class="mode-toggle" role="tablist" aria-label="Prediction mode">
+          <button type="button" class="mode active" data-mode="single" role="tab">Single sample</button>
+          <button type="button" class="mode" data-mode="batch" role="tab">Cohort (batch)</button>
+        </div>
+
+        <h3 id="uploadTitle">1 · Upload tumor sample</h3>
         <form id="uploadForm">
           <label class="dropzone" id="dropzone" for="fileInput">
             <input type="file" id="fileInput" accept=".csv,.tsv,.json,.txt" hidden />
             <span class="dz-icon" aria-hidden="true">⤓</span>
-            <span class="dz-main">Drop a sample file or <u>browse</u></span>
-            <span class="dz-sub">CSV · TSV · JSON — a single tumor sample</span>
+            <span class="dz-main" id="dzMain">Drop a sample file or <u>browse</u></span>
+            <span class="dz-sub" id="dzSub">CSV · TSV · JSON — a single tumor sample</span>
           </label>
           <div class="file-meta" id="fileMeta" hidden></div>
           <button type="submit" class="btn primary" id="submitBtn" disabled>
@@ -52,12 +59,15 @@
         </form>
 
         <div class="samples">
-          <p>No sample handy? Try one:</p>
-          <div class="sample-chips">
+          <p id="samplesLabel">No sample handy? Try one:</p>
+          <div class="sample-chips" id="singleChips">
             <a class="chip" href="/static/samples/sample_brca_ovarian.csv" download>BRCA⁺ ovarian</a>
             <a class="chip" href="/static/samples/sample_egfr_lung.csv" download>EGFR⁺ lung</a>
             <a class="chip" href="/static/samples/sample_her2_breast.json" download>HER2⁺ breast</a>
             <a class="chip" href="/static/samples/sample_msi_colorectal.csv" download>MSI-high colorectal</a>
+          </div>
+          <div class="sample-chips" id="batchChips" hidden>
+            <a class="chip" href="/static/samples/sample_cohort.csv" download>Example 8-patient cohort</a>
           </div>
           <p class="hint">Download one, then upload it above.</p>
         </div>
@@ -65,30 +75,43 @@
 
       <!-- Results card -->
       <div class="card result-card" id="resultCard">
-        <h3>2 · Recommended therapy</h3>
+        <h3 id="resultTitle">2 · Recommended therapy</h3>
         <div class="placeholder" id="placeholder">
           <span aria-hidden="true">🧬</span>
           <p>Upload a sample to see the ranked match.</p>
         </div>
 
+        <!-- single-sample results -->
         <div id="results" hidden>
           <div class="headline">
             <div>
               <span class="kicker">Top match</span>
               <div class="rec-name" id="recName">—</div>
               <div class="rec-class" id="recClass"></div>
+              <div class="rec-band" id="recBand"></div>
             </div>
             <div class="confidence">
-              <div class="conf-ring" id="confRing">
-                <span id="confVal">—</span>
-              </div>
+              <div class="conf-ring" id="confRing"><span id="confVal">—</span></div>
               <small>confidence</small>
             </div>
           </div>
 
-          <ul class="rationale" id="recRationale"></ul>
+          <div class="chips-row">
+            <span class="metric-chip" id="marginChip" title="Sensitivity gap between the top two therapies"></span>
+          </div>
 
-          <h4 class="rank-title">Full ranking</h4>
+          <div class="explain-cols">
+            <div class="explain-col">
+              <h4 class="sec supports">Supporting factors</h4>
+              <ul class="rationale" id="recSupport"></ul>
+            </div>
+            <div class="explain-col" id="cautionCol" hidden>
+              <h4 class="sec cautions">Cautions</h4>
+              <ul class="rationale caution" id="recCautions"></ul>
+            </div>
+          </div>
+
+          <h4 class="rank-title">Full ranking <small>(point estimate · 10–90% interval)</small></h4>
           <ul class="ranking" id="ranking"></ul>
 
           <details class="parsed">
@@ -97,6 +120,27 @@
             <pre id="parsedSample"></pre>
           </details>
         </div>
+
+        <!-- batch results -->
+        <div id="batchResults" hidden>
+          <div class="batch-head">
+            <div><b id="batchCount">0</b> tumor samples ranked</div>
+            <button type="button" class="btn small" id="downloadCsv">⤓ Download CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table class="cohort">
+              <thead>
+                <tr>
+                  <th>#</th><th>Cancer</th><th>Recommended therapy</th>
+                  <th>Match</th><th>Conf.</th><th>Margin</th><th>Runner-up</th>
+                </tr>
+              </thead>
+              <tbody id="cohortBody"></tbody>
+            </table>
+          </div>
+          <details class="parsed"><summary>Notes</summary><div id="batchWarnings"></div></details>
+        </div>
+
         <div class="error" id="errorBox" hidden></div>
       </div>
     </section>
@@ -111,7 +155,7 @@
   </main>
 
   <footer>
-    <span>OncoMatch · gradient-boosted multi-output drug-response model</span>
+    <span>OncoMatch · gradient-boosted multi-output drug-response model with quantile uncertainty</span>
     <a href="/api/health" target="_blank" rel="noopener">model status</a>
   </footer>
 

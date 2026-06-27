@@ -120,25 +120,24 @@ def _raw_to_dict(raw: bytes, filename: str) -> dict:
     return {str(c): df.iloc[0][c] for c in df.columns}
 
 
-def parse_sample(raw: bytes, filename: str = "") -> tuple[dict, list[str]]:
-    """Parse + validate + impute a single tumor sample.
+ALL_FEATURES = MUTATION_FEATURES + CONTINUOUS_FEATURES + ["cancer_type"]
 
-    Returns (sample, warnings). `sample` always has every model feature.
+
+def _normalize(flat: dict, prefix: str = "") -> tuple[dict, list[str]]:
+    """Coerce + impute a flat {feature: raw} dict into a full sample.
+
+    `prefix` (e.g. "Row 3: ") is prepended to warnings for batch context.
     """
-    flat = _raw_to_dict(raw, filename)
-    # normalize keys (strip, exact match against known features, case-insensitive)
-    lookup = {k.strip().lower(): k for k in flat}
+    lookup = {str(k).strip().lower(): k for k in flat}
     sample: dict = {}
     warnings: list[str] = []
 
-    all_features = MUTATION_FEATURES + CONTINUOUS_FEATURES + ["cancer_type"]
-    for feat in all_features:
+    for feat in ALL_FEATURES:
         src = lookup.get(feat.lower())
         if src is None:
-            # impute
             if feat == "cancer_type":
-                sample[feat] = "breast"  # neutral, common default
-                warnings.append("cancer_type missing — defaulted to 'breast'.")
+                sample[feat] = "breast"
+                warnings.append(f"{prefix}cancer_type missing — defaulted to 'breast'.")
             elif feat in MUTATION_FEATURES:
                 sample[feat] = 0.0
             else:
@@ -149,21 +148,64 @@ def parse_sample(raw: bytes, filename: str = "") -> tuple[dict, list[str]]:
             if feat == "cancer_type":
                 sample[feat] = "breast"
                 warnings.append(
-                    f"Unrecognized cancer_type '{flat[src]}' — defaulted to 'breast'. "
+                    f"{prefix}unrecognized cancer_type '{flat[src]}' — defaulted to 'breast'. "
                     f"Known: {', '.join(CANCER_TYPES)}."
                 )
             else:
                 sample[feat] = CONTINUOUS_PRIORS[feat][0] if feat in CONTINUOUS_FEATURES else 0.0
-                warnings.append(f"Could not parse '{feat}'='{flat[src]}' — imputed default.")
+                warnings.append(f"{prefix}could not parse '{feat}'='{flat[src]}' — imputed default.")
         else:
             sample[feat] = coerced
 
-    provided = sum(1 for f in all_features if f.lower() in lookup)
+    provided = sum(1 for f in ALL_FEATURES if f.lower() in lookup)
     if provided < 3:
         warnings.append(
-            "Very few recognized features were provided; prediction relies heavily on priors."
+            f"{prefix}very few recognized features were provided; prediction relies heavily on priors."
         )
     return sample, warnings
+
+
+def parse_sample(raw: bytes, filename: str = "") -> tuple[dict, list[str]]:
+    """Parse + validate + impute a single tumor sample.
+
+    Returns (sample, warnings). `sample` always has every model feature.
+    """
+    return _normalize(_raw_to_dict(raw, filename))
+
+
+def parse_cohort(raw: bytes, filename: str = "") -> tuple[list[dict], list[str]]:
+    """Parse a multi-row file (one tumor per row) into a list of samples.
+
+    Wide CSV/TSV with a header is treated row-per-sample. JSON may be a list of
+    objects. A single-sample file is accepted as a cohort of one.
+    """
+    text = raw.decode("utf-8-sig", errors="replace").strip()
+    name = (filename or "").lower()
+    warnings: list[str] = []
+
+    if name.endswith(".json") or text[:1] in "{[":
+        obj = json.loads(text)
+        records = obj if isinstance(obj, list) else [obj]
+    else:
+        sep = "\t" if (name.endswith(".tsv") or "\t" in text.splitlines()[0]) else ","
+        df = pd.read_csv(io.StringIO(text), sep=sep)
+        cols = [c.strip().lower() for c in df.columns]
+        # key,value layout => a single sample
+        if df.shape[1] == 2 and cols[0] in {"feature", "key", "name", "marker"}:
+            records = [{str(k): v for k, v in zip(df.iloc[:, 0], df.iloc[:, 1])}]
+        else:
+            records = [{str(c): row[c] for c in df.columns} for _, row in df.iterrows()]
+
+    if not records:
+        raise ValueError("No tumor samples found in file.")
+
+    samples = []
+    for i, rec in enumerate(records, start=1):
+        prefix = f"Row {i}: " if len(records) > 1 else ""
+        s, w = _normalize(rec, prefix=prefix)
+        samples.append(s)
+        warnings.extend(w)
+    return samples, warnings
 
 
 # ---------------------------------------------------------------------------
@@ -181,28 +223,88 @@ def _confidence(scores: np.ndarray) -> float:
     return float(p.max())
 
 
-def _drivers(sample: dict, therapy: str) -> list[str]:
-    """Explain which biomarkers pushed this therapy up for this sample."""
-    # Compare this sample's latent score to a 'wild-type' baseline sample.
+# Display names + caution texts for the contribution analysis.
+FEATURE_LABEL = {
+    "TP53_mut": "TP53 mutation", "KRAS_mut": "KRAS mutation",
+    "EGFR_mut": "EGFR-activating mutation", "BRAF_V600": "BRAF V600 mutation",
+    "ALK_fusion": "ALK fusion", "HER2_amp": "HER2 amplification",
+    "BRCA1_mut": "BRCA1 loss", "BRCA2_mut": "BRCA2 loss",
+    "PIK3CA_mut": "PIK3CA mutation", "PTEN_loss": "PTEN loss",
+    "MSI_high": "MSI-high / dMMR", "TMB": "Tumor mutational burden",
+    "proliferation": "High proliferation index", "ER_expr": "ER expression",
+    "ABCB1_expr": "ABCB1 / MDR1 efflux", "ERCC1_expr": "ERCC1 (NER capacity)",
+    "TUBB3_expr": "Class-III β-tubulin (TUBB3)",
+}
+
+CAUTION_RATIONALE = {
+    "ERCC1_expr": "Elevated ERCC1 (nucleotide-excision repair) predicts reduced platinum sensitivity.",
+    "TUBB3_expr": "Elevated class-III β-tubulin predicts taxane resistance.",
+    "ABCB1_expr": "High ABCB1/MDR1 drug efflux predicts multidrug resistance.",
+    "KRAS_mut": "KRAS mutation predicts resistance to EGFR-targeted therapy.",
+    "PTEN_loss": "PTEN loss can blunt response to this agent.",
+    "ER_expr": "ER-positive biology is typically less chemo-driven.",
+}
+
+# Effect (in sensitivity units) below which a feature is treated as irrelevant.
+_EPS = 0.03
+
+
+def _wild_type(sample: dict) -> dict:
+    """A same-cancer-type baseline tumor with no alterations, mean expression."""
     wt = {k: 0.0 for k in MUTATION_FEATURES}
     wt.update({k: CONTINUOUS_PRIORS[k][0] for k in CONTINUOUS_FEATURES})
     wt["cancer_type"] = sample["cancer_type"]
-    delta = sensitivity_scores(sample)[therapy] - sensitivity_scores(wt)[therapy]
+    return wt
 
-    reasons = []
-    for g in MUTATION_FEATURES:
-        if sample.get(g, 0) >= 0.5 and g in BIOMARKER_RATIONALE:
-            # only surface genomic drivers that plausibly affect this drug
-            test = dict(wt)
-            test[g] = 1.0
-            if abs(sensitivity_scores(test)[therapy] - sensitivity_scores(wt)[therapy]) > 0.05:
-                reasons.append(BIOMARKER_RATIONALE[g])
-    if not reasons:
-        if delta > 0.05:
-            reasons.append("Expression / cancer-type profile favors this therapy.")
+
+def explain(sample: dict, therapy: str) -> dict:
+    """Quantified, signed per-feature attribution for one therapy.
+
+    The label-generating rule model is (near-)additive, so each feature's
+    marginal effect vs a wild-type baseline is a faithful attribution. Returns
+    supporting factors and cautions, each with an effect in percentage points.
+    """
+    wt = _wild_type(sample)
+    base_score = sensitivity_scores(wt)[therapy]
+    supporting, cautions = [], []
+
+    for f in MUTATION_FEATURES + CONTINUOUS_FEATURES:
+        val = sample.get(f, 0.0)
+        # marginal effect of moving feature f from baseline to its sample value
+        probe = dict(wt)
+        probe[f] = val
+        effect = sensitivity_scores(probe)[therapy] - base_score
+        if abs(effect) < _EPS:
+            continue
+        item = {
+            "feature": f,
+            "label": FEATURE_LABEL.get(f, f),
+            "effect_pct": round(effect * 100, 1),
+        }
+        if effect > 0:
+            item["text"] = BIOMARKER_RATIONALE.get(
+                f, f"{item['label']} favors this therapy.")
+            supporting.append(item)
         else:
-            reasons.append("Selected as the strongest option given the overall profile.")
-    return reasons[:3]
+            item["text"] = CAUTION_RATIONALE.get(
+                f, f"{item['label']} reduces predicted benefit.")
+            cautions.append(item)
+
+    supporting.sort(key=lambda d: -d["effect_pct"])
+    cautions.sort(key=lambda d: d["effect_pct"])
+    if not supporting:
+        supporting.append({
+            "feature": None, "label": "Overall profile",
+            "effect_pct": None,
+            "text": "Selected as the strongest option given the overall tumor profile.",
+        })
+    return {"supporting": supporting, "cautions": cautions}
+
+
+def _decision_margin(scores: np.ndarray) -> float:
+    """Gap between the best and second-best therapy (0–1 sensitivity units)."""
+    s = np.sort(scores)[::-1]
+    return float(s[0] - s[1]) if len(s) > 1 else float(s[0])
 
 
 def predict(sample: dict, top_k: int = 5) -> dict:
@@ -212,29 +314,77 @@ def predict(sample: dict, top_k: int = 5) -> dict:
     therapies = bundle["therapies"]
 
     X = pd.DataFrame([sample])
-    raw_scores = np.asarray(model.predict(X)).ravel()
-    raw_scores = np.clip(raw_scores, 0.0, 1.0)
+    raw_scores = np.clip(np.asarray(model.predict(X)).ravel(), 0.0, 1.0)
+
+    # Per-therapy uncertainty interval from the quantile models (v2 bundles).
+    lo = hi = None
+    if "model_lo" in bundle and "model_hi" in bundle:
+        lo = np.clip(np.asarray(bundle["model_lo"].predict(X)).ravel(), 0.0, 1.0)
+        hi = np.clip(np.asarray(bundle["model_hi"].predict(X)).ravel(), 0.0, 1.0)
+        lo = np.minimum(lo, raw_scores)
+        hi = np.maximum(hi, raw_scores)
 
     order = raw_scores.argsort()[::-1]
     confidence = _confidence(raw_scores)
+    margin = _decision_margin(raw_scores)
 
     ranked = []
     for rank, j in enumerate(order[:top_k], start=1):
         name = therapies[j]
-        ranked.append({
+        exp = explain(sample, name)
+        item = {
             "rank": rank,
             "therapy": name,
             "drug_class": THERAPIES.get(name, ""),
             "sensitivity": round(float(raw_scores[j]), 4),
             "match_percent": round(float(raw_scores[j]) * 100, 1),
-            "rationale": _drivers(sample, name),
-        })
+            "rationale": [s["text"] for s in exp["supporting"][:2]],
+            "supporting": exp["supporting"],
+            "cautions": exp["cautions"],
+        }
+        if lo is not None:
+            item["ci_low"] = round(float(lo[j]) * 100, 1)
+            item["ci_high"] = round(float(hi[j]) * 100, 1)
+        ranked.append(item)
 
     return {
         "recommendation": ranked[0]["therapy"],
         "confidence": round(confidence, 4),
+        "decision_margin": round(margin, 4),
         "ranked": ranked,
         "all_scores": {therapies[j]: round(float(raw_scores[j]), 4)
                        for j in order},
         "model_metrics": bundle.get("metrics", {}),
     }
+
+
+def predict_batch(samples: list[dict]) -> dict:
+    """Rank therapies for a cohort of samples; returns a compact table payload.
+
+    Each row carries the top recommendation, confidence, decision margin, and
+    the runner-up so a clinician/researcher can triage a whole cohort at once.
+    """
+    bundle = load_bundle()
+    model = bundle["model"]
+    therapies = bundle["therapies"]
+
+    X = pd.DataFrame(samples)
+    scores = np.clip(np.asarray(model.predict(X)), 0.0, 1.0)
+
+    rows = []
+    for i, sc in enumerate(scores):
+        order = sc.argsort()[::-1]
+        top, second = therapies[order[0]], therapies[order[1]]
+        rows.append({
+            "index": i + 1,
+            "cancer_type": samples[i].get("cancer_type", ""),
+            "recommendation": top,
+            "drug_class": THERAPIES.get(top, ""),
+            "match_percent": round(float(sc[order[0]]) * 100, 1),
+            "confidence": round(_confidence(sc), 4),
+            "decision_margin": round(_decision_margin(sc), 4),
+            "runner_up": second,
+            "runner_up_percent": round(float(sc[order[1]]) * 100, 1),
+        })
+    return {"n": len(rows), "therapies": therapies, "rows": rows,
+            "model_metrics": bundle.get("metrics", {})}

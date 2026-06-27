@@ -16,9 +16,16 @@ sensitivity, and explains the biomarkers behind each match.
 1. You upload a **single tumor sample** (CSV / TSV / JSON) describing its
    genomic alterations and expression/clinical features.
 2. A trained **multi-output gradient-boosted model** predicts a sensitivity
-   score for every therapy in the panel.
-3. The UI shows the **top match + confidence**, the **full ranking**, and the
-   **biomarkers** that drove the recommendation.
+   score — with a **10–90% uncertainty interval** — for every therapy in the panel.
+3. The UI shows the **top match + confidence + decision margin**, the **full
+   ranking** with uncertainty bands, and a quantified breakdown of the
+   **supporting biomarkers** and **resistance cautions** behind the match.
+
+Two modes:
+
+- **Single sample** — one tumor, full ranked explanation with intervals.
+- **Cohort (batch)** — upload one tumor per row, get a ranked recommendation
+  table for the whole cohort with **CSV export**.
 
 ### Model performance (held-out test set, 1,800 samples)
 
@@ -28,6 +35,7 @@ sensitivity, and explains the biomarkers behind each match.
 | Top-3 accuracy (best therapy in top 3) | **~98%** |
 | Mean per-drug R² | **~0.82** |
 | Mean per-sample Spearman rank correlation | **~0.89** |
+| 10–90% interval coverage | **~76%** |
 
 These numbers print when you train, and are surfaced live in the app header and
 at `GET /api/health`.
@@ -43,6 +51,8 @@ always get a full ordered recommendation list with margins.
 
 - **Algorithm:** `MultiOutputRegressor` of `HistGradientBoostingRegressor`s over
   a preprocessing pipeline (one-hot cancer type + passthrough genomics/expression).
+  A second pair of pipelines trained with the **pinball (quantile) loss** at
+  q=0.10 and q=0.90 produces a calibrated prediction interval per therapy.
   Gradient-boosted trees capture the non-linear biomarker interactions and
   resistance gradients well.
 - **Training data:** a biologically grounded synthetic cohort
@@ -53,9 +63,11 @@ always get a full ordered recommendation list with margins.
   trastuzumab*, *EGFR-activating mutation → EGFR-TKI*, *MSI-high/high TMB →
   checkpoint inhibitor*, *ERCC1-high → platinum resistance*), plus realistic
   assay noise.
-- **Explanations:** for the recommended therapy the app reports which of the
-  sample's biomarkers moved its score, by perturbing the rule model against a
-  wild-type baseline.
+- **Explanations:** for each therapy the app computes a **quantified, signed
+  attribution** — the marginal effect (in sensitivity percentage points) of each
+  biomarker, measured by perturbing the rule model against a wild-type baseline.
+  Positive effects are surfaced as *supporting factors*, negative ones as
+  *resistance cautions* (e.g. ERCC1-high → reduced platinum benefit).
 
 > Because the labels come from a rules-based simulator, the model is a faithful
 > *demonstration* of the matching workflow, not a clinically validated predictor.
@@ -122,10 +134,14 @@ python -m model.train
 
 - `GET  /` — the web UI
 - `GET  /api/health` — model status + metrics
-- `POST /api/predict` — multipart upload (`file=<sample>`) → ranked JSON
+- `POST /api/predict` — multipart upload (`file=<sample>`) → ranked JSON with
+  intervals + per-feature attribution for one tumor
+- `POST /api/predict_batch` — multipart upload (`file=<cohort>`) → ranked table
+  (one row per tumor)
 
 ```bash
 curl -F "file=@static/samples/sample_egfr_lung.csv" http://localhost:8000/api/predict
+curl -F "file=@static/samples/sample_cohort.csv"   http://localhost:8000/api/predict_batch
 ```
 
 ---
@@ -133,15 +149,15 @@ curl -F "file=@static/samples/sample_egfr_lung.csv" http://localhost:8000/api/pr
 ## Project layout
 
 ```
-app.py                 FastAPI server (UI + /api/predict)
+app.py                 FastAPI server (UI + /api/predict + /api/predict_batch)
 model/
   biomarkers.py        feature schema, therapy panel, pharmacogenomic rules
   generate_data.py     biologically grounded synthetic training cohort
-  train.py             trains + evaluates the multi-output model
-  predict.py           parse upload → rank therapies → explain
+  train.py             trains + evaluates the model + quantile interval models
+  predict.py           parse upload → rank → intervals → attribution (single + batch)
 artifacts/
   model.joblib         trained model bundle (auto-generated on first run)
   metrics.json         held-out evaluation metrics
-templates/index.html   single-page UI
-static/                style.css, app.js, sample files
+templates/index.html   single-page UI (single + cohort modes)
+static/                style.css, app.js, sample files (incl. sample_cohort.csv)
 ```

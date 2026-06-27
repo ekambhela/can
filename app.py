@@ -19,14 +19,30 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from model.predict import load_bundle, parse_sample, predict
+from model.predict import (
+    load_bundle,
+    parse_cohort,
+    parse_sample,
+    predict,
+    predict_batch,
+)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-app = FastAPI(title="OncoMatch", version="1.0.0")
+app = FastAPI(title="OncoMatch", version="1.1.0")
 app.mount("/static", StaticFiles(directory=os.path.join(BASE, "static")), name="static")
 
 MAX_BYTES = 2 * 1024 * 1024  # 2 MB upload cap
+MAX_COHORT_ROWS = 500        # cap batch size to keep responses snappy
+
+
+@app.on_event("startup")
+def _prewarm() -> None:
+    """Train/load the model at boot so the first user request is fast."""
+    try:
+        load_bundle()
+    except Exception as exc:  # noqa: BLE001 — log and continue; /api/health reports it
+        print(f"[startup] model not ready: {exc}")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -66,6 +82,36 @@ async def api_predict(file: UploadFile = File(...)) -> JSONResponse:
     # Echo back the parsed sample so the UI can show what the model "saw".
     result["parsed_sample"] = sample
     result["warnings"] = warnings
+    result["filename"] = file.filename
+    return JSONResponse(result)
+
+
+@app.post("/api/predict_batch")
+async def api_predict_batch(file: UploadFile = File(...)) -> JSONResponse:
+    """Rank therapies for a whole cohort (one tumor per row)."""
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if len(raw) > MAX_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 2 MB).")
+
+    try:
+        samples, warnings = parse_cohort(raw, file.filename or "")
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=422, detail=f"Could not parse cohort: {exc}")
+
+    if len(samples) > MAX_COHORT_ROWS:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Cohort has {len(samples)} rows; max {MAX_COHORT_ROWS}.",
+        )
+
+    try:
+        result = predict_batch(samples)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    result["warnings"] = warnings[:20]  # cap noise
     result["filename"] = file.filename
     return JSONResponse(result)
 

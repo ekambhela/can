@@ -52,8 +52,13 @@ ARTIFACTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 NUMERIC_FEATURES = MUTATION_FEATURES + CONTINUOUS_FEATURES
 
 
-def build_pipeline() -> Pipeline:
-    """Preprocessing + multi-output gradient-boosted regressor."""
+def build_pipeline(quantile: float | None = None) -> Pipeline:
+    """Preprocessing + multi-output gradient-boosted regressor.
+
+    When `quantile` is given, the trees optimize the pinball loss for that
+    quantile instead of the mean, so a pair of pipelines (e.g. 0.1 / 0.9)
+    yields a calibrated prediction interval per therapy.
+    """
     pre = ColumnTransformer(
         transformers=[
             ("cat", OneHotEncoder(categories=[CANCER_TYPES], handle_unknown="ignore"),
@@ -61,15 +66,20 @@ def build_pipeline() -> Pipeline:
             ("num", "passthrough", NUMERIC_FEATURES),
         ]
     )
-    base = HistGradientBoostingRegressor(
-        max_depth=None,
-        max_iter=400,
-        learning_rate=0.06,
-        l2_regularization=1.0,
-        early_stopping=True,
-        validation_fraction=0.1,
-        random_state=0,
-    )
+    if quantile is None:
+        base = HistGradientBoostingRegressor(
+            loss="squared_error",
+            max_depth=None, max_iter=400, learning_rate=0.06,
+            l2_regularization=1.0, early_stopping=True,
+            validation_fraction=0.1, random_state=0,
+        )
+    else:
+        base = HistGradientBoostingRegressor(
+            loss="quantile", quantile=quantile,
+            max_depth=None, max_iter=200, learning_rate=0.07,
+            l2_regularization=1.0, early_stopping=True,
+            validation_fraction=0.1, random_state=0,
+        )
     return Pipeline([("pre", pre), ("model", MultiOutputRegressor(base))])
 
 
@@ -122,18 +132,32 @@ def main(n_samples: int = 9000, seed: int = 7) -> dict:
     model = build_pipeline()
     model.fit(X_tr, Y_tr)
 
+    # Quantile models give a per-therapy prediction interval (uncertainty band).
+    print("Training quantile interval models (q10 / q90) ...")
+    model_lo = build_pipeline(quantile=0.10)
+    model_hi = build_pipeline(quantile=0.90)
+    model_lo.fit(X_tr, Y_tr)
+    model_hi.fit(X_tr, Y_tr)
+
     print("Evaluating ...")
     metrics = evaluate(model, X_te, Y_te)
+    # Empirical interval coverage: fraction of held-out truths inside [q10, q90].
+    lo = np.asarray(model_lo.predict(X_te))
+    hi = np.asarray(model_hi.predict(X_te))
+    inside = (Y_te.to_numpy() >= lo) & (Y_te.to_numpy() <= hi)
+    metrics["interval_coverage"] = round(float(inside.mean()), 4)
     print(json.dumps({k: v for k, v in metrics.items() if k != "per_drug_r2"}, indent=2))
 
     bundle = {
         "model": model,
+        "model_lo": model_lo,
+        "model_hi": model_hi,
         "therapies": THERAPY_NAMES,
         "mutation_features": MUTATION_FEATURES,
         "continuous_features": CONTINUOUS_FEATURES,
         "cancer_types": CANCER_TYPES,
         "metrics": metrics,
-        "version": 1,
+        "version": 2,
     }
     joblib.dump(bundle, os.path.join(ARTIFACTS, "model.joblib"))
     with open(os.path.join(ARTIFACTS, "metrics.json"), "w") as fh:
