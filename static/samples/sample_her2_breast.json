@@ -1,0 +1,20 @@
+{
+  "cancer_type": "breast",
+  "HER2_amp": 1,
+  "TP53_mut": 1,
+  "PIK3CA_mut": 1,
+  "ER_expr": 0.2,
+  "KRAS_mut": 0,
+  "EGFR_mut": 0,
+  "BRAF_V600": 0,
+  "ALK_fusion": 0,
+  "BRCA1_mut": 0,
+  "BRCA2_mut": 0,
+  "PTEN_loss": 0,
+  "MSI_high": 0,
+  "TMB": 6.0,
+  "proliferation": 0.7,
+  "ABCB1_expr": 0.25,
+  "ERCC1_expr": 0.3,
+  "TUBB3_expr": 0.25
+}

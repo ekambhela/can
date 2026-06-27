@@ -1,0 +1,2 @@
+cancer_type,TP53_mut,BRCA1_mut,BRCA2_mut,KRAS_mut,EGFR_mut,BRAF_V600,ALK_fusion,HER2_amp,PIK3CA_mut,PTEN_loss,MSI_high,TMB,proliferation,ER_expr,ABCB1_expr,ERCC1_expr,TUBB3_expr
+ovarian,1,1,0,0,0,0,0,0,0,0,0,7.5,0.6,0.1,0.2,0.2,0.3

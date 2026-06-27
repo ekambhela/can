@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OncoMatch · Tumor → Chemotherapy Matcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">⬡</span>
+      <div>
+        <h1>OncoMatch</h1>
+        <p class="tagline">Precision tumor-to-chemotherapy matching</p>
+      </div>
+    </div>
+    <div class="model-stats" id="modelStats" aria-live="polite">
+      <span class="stat"><b id="statTop1">—</b><small>top-1 accuracy</small></span>
+      <span class="stat"><b id="statTop3">—</b><small>top-3 accuracy</small></span>
+      <span class="stat"><b id="statR2">—</b><small>mean R²</small></span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h2>Match a tumor sample to its most effective therapy</h2>
+      <p>
+        Upload a tumor profile and the model ranks a panel of
+        <span id="nTherapies">15</span> chemotherapies and targeted agents by
+        predicted sensitivity — with the biomarkers that drove each match.
+      </p>
+    </section>
+
+    <section class="grid">
+      <!-- Upload card -->
+      <div class="card upload-card">
+        <h3>1 · Upload tumor sample</h3>
+        <form id="uploadForm">
+          <label class="dropzone" id="dropzone" for="fileInput">
+            <input type="file" id="fileInput" accept=".csv,.tsv,.json,.txt" hidden />
+            <span class="dz-icon" aria-hidden="true">⤓</span>
+            <span class="dz-main">Drop a sample file or <u>browse</u></span>
+            <span class="dz-sub">CSV · TSV · JSON — a single tumor sample</span>
+          </label>
+          <div class="file-meta" id="fileMeta" hidden></div>
+          <button type="submit" class="btn primary" id="submitBtn" disabled>
+            Match therapy
+          </button>
+        </form>
+
+        <div class="samples">
+          <p>No sample handy? Try one:</p>
+          <div class="sample-chips">
+            <a class="chip" href="/static/samples/sample_brca_ovarian.csv" download>BRCA⁺ ovarian</a>
+            <a class="chip" href="/static/samples/sample_egfr_lung.csv" download>EGFR⁺ lung</a>
+            <a class="chip" href="/static/samples/sample_her2_breast.json" download>HER2⁺ breast</a>
+            <a class="chip" href="/static/samples/sample_msi_colorectal.csv" download>MSI-high colorectal</a>
+          </div>
+          <p class="hint">Download one, then upload it above.</p>
+        </div>
+      </div>
+
+      <!-- Results card -->
+      <div class="card result-card" id="resultCard">
+        <h3>2 · Recommended therapy</h3>
+        <div class="placeholder" id="placeholder">
+          <span aria-hidden="true">🧬</span>
+          <p>Upload a sample to see the ranked match.</p>
+        </div>
+
+        <div id="results" hidden>
+          <div class="headline">
+            <div>
+              <span class="kicker">Top match</span>
+              <div class="rec-name" id="recName">—</div>
+              <div class="rec-class" id="recClass"></div>
+            </div>
+            <div class="confidence">
+              <div class="conf-ring" id="confRing">
+                <span id="confVal">—</span>
+              </div>
+              <small>confidence</small>
+            </div>
+          </div>
+
+          <ul class="rationale" id="recRationale"></ul>
+
+          <h4 class="rank-title">Full ranking</h4>
+          <ul class="ranking" id="ranking"></ul>
+
+          <details class="parsed">
+            <summary>Parsed sample &amp; notes</summary>
+            <div id="warnings"></div>
+            <pre id="parsedSample"></pre>
+          </details>
+        </div>
+        <div class="error" id="errorBox" hidden></div>
+      </div>
+    </section>
+
+    <section class="disclaimer">
+      <strong>Research / educational use only.</strong>
+      OncoMatch is a demonstration of pharmacogenomic drug-response modeling. It
+      is <em>not</em> a validated clinical decision-support tool and must not be
+      used to guide patient care. Treatment decisions require a qualified
+      oncologist and validated diagnostics.
+    </section>
+  </main>
+
+  <footer>
+    <span>OncoMatch · gradient-boosted multi-output drug-response model</span>
+    <a href="/api/health" target="_blank" rel="noopener">model status</a>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

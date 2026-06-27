@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Auto-generated model artifacts (rebuilt on first run / by `python -m model.train`)
+artifacts/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
