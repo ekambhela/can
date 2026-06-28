@@ -13,19 +13,58 @@ let mode = "single";          // "single" | "manual" | "batch"
 let lastBatch = null;         // cached cohort result for CSV export
 let currentSample = null;     // parsed sample behind the current single result (for sharing)
 
-/* ---- model stats in the header ---- */
+/* ---- live model stats (from /api/health) ---- */
 async function loadStats() {
   try {
     const d = await (await fetch("/api/health")).json();
     const m = d.metrics || {};
-    if (m.top1_accuracy != null) $("statTop1").textContent = (m.top1_accuracy * 100).toFixed(1) + "%";
-    if (m.top3_accuracy != null) $("statTop3").textContent = (m.top3_accuracy * 100).toFixed(1) + "%";
-    if (m.mean_r2 != null) $("statR2").textContent = m.mean_r2.toFixed(2);
-    if (m.interval_coverage != null) $("statCov").textContent = (m.interval_coverage * 100).toFixed(0) + "%";
-    if (m.n_therapies) $("nTherapies").textContent = m.n_therapies;
+    const set = (id, val) => { const el = $(id); if (el && val != null) el.textContent = val; };
+    set("statTop1", m.top1_accuracy != null ? Math.round(m.top1_accuracy * 100) + "%" : null);
+    set("statTop3", m.top3_accuracy != null ? Math.round(m.top3_accuracy * 100) + "%" : null);
+    set("statCov", m.interval_coverage != null ? Math.round(m.interval_coverage * 100) + "%" : null);
+    set("nTherapies", m.n_therapies || null);
   } catch (_) { /* non-fatal */ }
 }
 loadStats();
+
+/* ---- tab navigation ---- */
+const TABS = ["home", "how", "science", "matcher"];
+function showTab(name) {
+  if (!TABS.includes(name)) name = "home";
+  document.querySelectorAll(".tab-section").forEach((s) => { s.hidden = s.dataset.pane !== name; });
+  document.querySelectorAll(".navlink").forEach((a) => a.classList.toggle("active", a.dataset.tab === name));
+  if (name === "home") animateCounters();
+  if (history.replaceState) history.replaceState(null, "", "#" + name);
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll("[data-tab]").forEach((el) => {
+  el.addEventListener("click", (e) => { e.preventDefault(); showTab(el.dataset.tab); });
+});
+
+/* ---- animated counters (home) ---- */
+let countersDone = false;
+function animateCounters() {
+  if (countersDone) return;
+  countersDone = true;
+  document.querySelectorAll(".count").forEach((el) => {
+    const to = parseFloat(el.dataset.to);
+    const dec = parseInt(el.dataset.dec || "0", 10);
+    const suf = el.dataset.suffix || "";
+    const t0 = performance.now(), dur = 1100;
+    (function step(t) {
+      const p = Math.min(1, (t - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = (to * e).toFixed(dec) + suf;
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  });
+}
+
+/* ---- initial route ---- */
+(function initRoute() {
+  if (new URLSearchParams(location.search).get("case")) return;  // handled after schema loads
+  showTab((location.hash || "").replace("#", "") || "home");
+})();
 
 /* ---- mode toggle ---- */
 document.querySelectorAll(".mode").forEach((btn) => {
@@ -130,6 +169,7 @@ function restoreFromUrl() {
   if (!c) return;
   let sample;
   try { sample = decodeCase(c); } catch (_) { return; }
+  showTab("matcher");                                           // open the matcher tab
   document.querySelector('.mode[data-mode="manual"]').click();  // switch to manual view
   applyManualSample(sample);
   if (form.requestSubmit) form.requestSubmit();

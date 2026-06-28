@@ -3,179 +3,408 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Karkive · Tumor → Chemotherapy Matcher</title>
+  <title>Karkive · Precision tumor-to-chemotherapy matching</title>
+  <meta name="description" content="Karkive reads a tumor's molecular fingerprint and ranks chemotherapies and targeted agents by predicted effectiveness — with calibrated confidence and the biomarkers behind every call." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo" aria-hidden="true">⬡</span>
-      <div>
-        <h1>Karkive</h1>
-        <p class="tagline">Precision tumor-to-chemotherapy matching</p>
-      </div>
-    </div>
-    <div class="model-stats" id="modelStats" aria-live="polite">
-      <span class="stat"><b id="statTop1">—</b><small>top-1 accuracy</small></span>
-      <span class="stat"><b id="statTop3">—</b><small>top-3 accuracy</small></span>
-      <span class="stat"><b id="statR2">—</b><small>mean R²</small></span>
-      <span class="stat"><b id="statCov">—</b><small>interval coverage</small></span>
-    </div>
+  <!-- ============ NAV ============ -->
+  <header class="nav">
+    <a class="brand" data-tab="home" href="#home">
+      <span class="brand-mark" aria-hidden="true">◈</span> Karkive
+    </a>
+    <nav class="navlinks" aria-label="Primary">
+      <a class="navlink active" data-tab="home" href="#home">Home</a>
+      <a class="navlink" data-tab="how" href="#how">How it works</a>
+      <a class="navlink" data-tab="science" href="#science">The science</a>
+      <a class="navlink" data-tab="matcher" href="#matcher">Matcher</a>
+    </nav>
+    <a class="nav-cta" data-tab="matcher" href="#matcher">Try the matcher →</a>
   </header>
 
   <main>
-    <section class="hero">
-      <h2>Match a tumor sample to its most effective therapy</h2>
-      <p>
-        Upload a tumor profile and the model ranks a panel of
-        <span id="nTherapies">15</span> chemotherapies and targeted agents by
-        predicted sensitivity — with uncertainty bands and the biomarkers that
-        drove each match.
-      </p>
-    </section>
-
-    <section class="grid">
-      <!-- Upload card -->
-      <div class="card upload-card">
-        <div class="mode-toggle" role="tablist" aria-label="Prediction mode">
-          <button type="button" class="mode active" data-mode="single" role="tab">Single file</button>
-          <button type="button" class="mode" data-mode="manual" role="tab">Manual entry</button>
-          <button type="button" class="mode" data-mode="batch" role="tab">Cohort (batch)</button>
+    <!-- ============ HOME ============ -->
+    <section class="tab-section" data-pane="home">
+      <div class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Precision oncology · research demonstration</span>
+          <h1>The right therapy, matched to the <em>tumor</em> — not the average patient.</h1>
+          <p class="lede">
+            Karkive reads a tumor's molecular fingerprint and ranks
+            <b id="nTherapies">15</b> chemotherapies and targeted agents by how well
+            each is predicted to work — with a calibrated confidence band and the
+            biomarkers behind every recommendation.
+          </p>
+          <div class="hero-cta">
+            <a class="btn primary lg" data-tab="matcher" href="#matcher">Try the matcher →</a>
+            <a class="btn ghost lg" data-tab="how" href="#how">See how it works</a>
+          </div>
+          <div class="hero-trust">
+            <span><b id="statTop1">82%</b> top-1 accuracy</span>
+            <span class="dot-sep"></span>
+            <span><b id="statTop3">98%</b> top-3 accuracy</span>
+            <span class="dot-sep"></span>
+            <span><b id="statCov">76%</b> interval coverage</span>
+          </div>
         </div>
-
-        <h3 id="uploadTitle">1 · Upload tumor sample</h3>
-        <form id="uploadForm">
-          <label class="dropzone" id="dropzone" for="fileInput">
-            <input type="file" id="fileInput" accept=".csv,.tsv,.json,.txt" hidden />
-            <span class="dz-icon" aria-hidden="true">⤓</span>
-            <span class="dz-main" id="dzMain">Drop a sample file or <u>browse</u></span>
-            <span class="dz-sub" id="dzSub">CSV · TSV · JSON — a single tumor sample</span>
-          </label>
-          <div class="file-meta" id="fileMeta" hidden></div>
-
-          <!-- manual-entry form, built from /api/schema -->
-          <div class="manual-panel" id="manualPanel" hidden>
-            <label class="field">
-              <span class="field-label">Cancer type</span>
-              <select id="m_cancer_type"></select>
-            </label>
-            <div class="field-group">
-              <span class="group-title">Genomic alterations <small>(toggle any present)</small></span>
-              <div class="checks" id="mutChecks"></div>
-            </div>
-            <div class="field-group">
-              <span class="group-title">Expression &amp; clinical</span>
-              <div class="sliders" id="contSliders"></div>
-            </div>
+        <div class="hero-art">
+          <div class="blob blob-a"></div>
+          <div class="blob blob-b"></div>
+          <div class="helix-wrap">
+            <!-- DNA double-helix (generated coordinates) -->
+            <svg viewBox="0 0 300 460" xmlns="http://www.w3.org/2000/svg" class="helix" aria-hidden="true">
+              <defs>
+                <linearGradient id="strandA" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#0ea5e9"/>
+                </linearGradient>
+                <linearGradient id="strandB" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#ec4899"/><stop offset="1" stop-color="#10b981"/>
+                </linearGradient>
+              </defs>
+              <polyline points="150.0,18.0 205.2,42.0 239.8,66.0 241.1,90.0 208.4,114.0 154.0,138.0 98.1,162.0 61.5,186.0 57.9,210.0 88.6,234.0 142.1,258.0 198.6,282.0 237.0,306.0 243.0,330.0 214.4,354.0 161.8,378.0 104.9,402.0 64.7,426.0" fill="none" stroke="url(#strandA)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="150.0,18.0 94.8,42.0 60.2,66.0 58.9,90.0 91.6,114.0 146.0,138.0 201.9,162.0 238.5,186.0 242.1,210.0 211.4,234.0 157.9,258.0 101.4,282.0 63.0,306.0 57.0,330.0 85.6,354.0 138.2,378.0 195.1,402.0 235.3,426.0" fill="none" stroke="url(#strandB)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="205.2" y1="42" x2="94.8" y2="42" stroke="#0ea5e9" stroke-width="3.5" stroke-linecap="round" opacity="0.63"/><line x1="239.8" y1="66" x2="60.2" y2="66" stroke="#10b981" stroke-width="4.8" stroke-linecap="round" opacity="0.86"/><line x1="241.1" y1="90" x2="58.9" y2="90" stroke="#f59e0b" stroke-width="4.9" stroke-linecap="round" opacity="0.87"/><line x1="208.4" y1="114" x2="91.6" y2="114" stroke="#ec4899" stroke-width="3.7" stroke-linecap="round" opacity="0.65"/><line x1="98.1" y1="162" x2="201.9" y2="162" stroke="#0ea5e9" stroke-width="3.4" stroke-linecap="round" opacity="0.61"/><line x1="61.5" y1="186" x2="238.5" y2="186" stroke="#10b981" stroke-width="4.8" stroke-linecap="round" opacity="0.86"/><line x1="57.9" y1="210" x2="242.1" y2="210" stroke="#f59e0b" stroke-width="4.9" stroke-linecap="round" opacity="0.88"/><line x1="88.6" y1="234" x2="211.4" y2="234" stroke="#ec4899" stroke-width="3.8" stroke-linecap="round" opacity="0.67"/><line x1="198.6" y1="282" x2="101.4" y2="282" stroke="#0ea5e9" stroke-width="3.3" stroke-linecap="round" opacity="0.58"/><line x1="237.0" y1="306" x2="63.0" y2="306" stroke="#10b981" stroke-width="4.7" stroke-linecap="round" opacity="0.85"/><line x1="243.0" y1="330" x2="57.0" y2="330" stroke="#f59e0b" stroke-width="4.9" stroke-linecap="round" opacity="0.89"/><line x1="214.4" y1="354" x2="85.6" y2="354" stroke="#ec4899" stroke-width="3.9" stroke-linecap="round" opacity="0.69"/><line x1="104.9" y1="402" x2="195.1" y2="402" stroke="#0ea5e9" stroke-width="3.2" stroke-linecap="round" opacity="0.56"/>
+              <circle cx="205.2" cy="42.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="239.8" cy="66.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="241.1" cy="90.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="208.4" cy="114.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="98.1" cy="162.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="61.5" cy="186.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="57.9" cy="210.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="88.6" cy="234.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="198.6" cy="282.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="237.0" cy="306.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="243.0" cy="330.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="214.4" cy="354.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="94.8" cy="42.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="60.2" cy="66.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="58.9" cy="90.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="91.6" cy="114.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="201.9" cy="162.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="238.5" cy="186.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="242.1" cy="210.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="211.4" cy="234.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="101.4" cy="282.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="63.0" cy="306.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="57.0" cy="330.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/><circle cx="85.6" cy="354.0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/>
+            </svg>
           </div>
-
-          <button type="submit" class="btn primary" id="submitBtn" disabled>
-            Match therapy
-          </button>
-        </form>
-
-        <div class="samples">
-          <p id="samplesLabel">No sample handy? Try one:</p>
-          <div class="sample-chips" id="singleChips">
-            <a class="chip" href="/static/samples/sample_brca_ovarian.csv" download>BRCA⁺ ovarian</a>
-            <a class="chip" href="/static/samples/sample_egfr_lung.csv" download>EGFR⁺ lung</a>
-            <a class="chip" href="/static/samples/sample_her2_breast.json" download>HER2⁺ breast</a>
-            <a class="chip" href="/static/samples/sample_msi_colorectal.csv" download>MSI-high colorectal</a>
-          </div>
-          <div class="sample-chips" id="batchChips" hidden>
-            <a class="chip" href="/static/samples/sample_cohort.csv" download>Example 8-patient cohort</a>
-          </div>
-          <p class="hint">Download one, then upload it above.</p>
         </div>
       </div>
 
-      <!-- Results card -->
-      <div class="card result-card" id="resultCard">
-        <h3 id="resultTitle">2 · Recommended therapy</h3>
-        <div class="placeholder" id="placeholder">
-          <span aria-hidden="true">🧬</span>
-          <p>Upload a sample to see the ranked match.</p>
-        </div>
+      <!-- mission -->
+      <div class="band mission">
+        <p>
+          Two patients with the “same” cancer can need completely different drugs.
+          <strong>Karkive exists to make that difference visible</strong> — turning a
+          tumor's genomics into a ranked, explained treatment shortlist in seconds.
+        </p>
+      </div>
 
-        <!-- single-sample results -->
-        <div id="results" hidden>
-          <div class="headline">
+      <!-- why it matters -->
+      <section class="wrap">
+        <h2 class="section-title">Why match at all?</h2>
+        <p class="section-sub">Three reasons the molecular profile — not the organ — should steer treatment.</p>
+        <div class="cards-3">
+          <article class="feature">
+            <span class="feat-ico" style="--c:#6366f1">🧬</span>
+            <h3>Cancer isn't one disease</h3>
+            <p>A breast tumor driven by <b>HER2</b> behaves nothing like one driven by <b>BRCA</b> loss. The driver mutation often decides what works far more than where the tumor sits.</p>
+          </article>
+          <article class="feature">
+            <span class="feat-ico" style="--c:#f59e0b">⏳</span>
+            <h3>Trial-and-error is expensive</h3>
+            <p>Every cycle on an ineffective regimen is time a tumor keeps growing. Matching therapy to biology up front is the entire promise of precision oncology.</p>
+          </article>
+          <article class="feature">
+            <span class="feat-ico" style="--c:#10b981">🔍</span>
+            <h3>Black boxes don't belong in medicine</h3>
+            <p>Every Karkive recommendation ships with the biomarkers that drove it and an honest uncertainty band. No mystery scores — you can see the reasoning.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- stats -->
+      <section class="wrap">
+        <div class="stat-band">
+          <div class="stat-cell"><b class="count" data-to="82" data-suffix="%">0</b><span>top-1 accuracy</span><small>recovers the single best therapy</small></div>
+          <div class="stat-cell"><b class="count" data-to="98" data-suffix="%">0</b><span>top-3 accuracy</span><small>best therapy in the top three</small></div>
+          <div class="stat-cell"><b class="count" data-to="15">0</b><span>therapies ranked</span><small>cytotoxic, targeted &amp; immuno</small></div>
+          <div class="stat-cell"><b class="count" data-to="0.82" data-dec="2">0</b><span>mean R²</span><small>per-drug sensitivity fit</small></div>
+        </div>
+      </section>
+
+      <!-- how teaser -->
+      <section class="wrap">
+        <h2 class="section-title">From sample to shortlist, in four steps</h2>
+        <div class="pipeline">
+          <div class="pstep"><span class="pnum">1</span><span class="pico">🧪</span><h4>Profile</h4><p>Genomic alterations + expression describe the tumor.</p></div>
+          <div class="parrow">→</div>
+          <div class="pstep"><span class="pnum">2</span><span class="pico">🤖</span><h4>Predict</h4><p>The model scores every therapy's sensitivity.</p></div>
+          <div class="parrow">→</div>
+          <div class="pstep"><span class="pnum">3</span><span class="pico">📊</span><h4>Rank</h4><p>Therapies ordered, each with a confidence band.</p></div>
+          <div class="parrow">→</div>
+          <div class="pstep"><span class="pnum">4</span><span class="pico">💡</span><h4>Explain</h4><p>The biomarkers behind the top match, quantified.</p></div>
+        </div>
+        <div class="center"><a class="btn primary" data-tab="matcher" href="#matcher">Match a tumor now →</a></div>
+      </section>
+
+      <div class="band note">
+        <strong>Research &amp; educational use only.</strong> Karkive is a demonstration of pharmacogenomic
+        drug-response modeling — <em>not</em> a validated clinical tool. It must not guide patient care.
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="tab-section" data-pane="how" hidden>
+      <div class="page-head">
+        <span class="eyebrow">Methodology</span>
+        <h1>How Karkive thinks</h1>
+        <p class="lede">A transparent pipeline built on a well-worn idea in pharmacogenomics: predict how a tumor responds to <em>every</em> drug, then rank.</p>
+      </div>
+
+      <section class="wrap">
+        <div class="flow">
+          <article class="flow-step">
+            <div class="flow-ico" style="--c:#6366f1">🧪</div>
             <div>
-              <span class="kicker">Top match</span>
-              <div class="rec-name" id="recName">—</div>
-              <div class="rec-class" id="recClass"></div>
-              <div class="rec-band" id="recBand"></div>
+              <h3>1 · Profile the tumor</h3>
+              <p>A sample is described by what actually drives cancer biology: <b>genomic alterations</b> (TP53, KRAS, EGFR, HER2 amplification, BRCA loss, ALK fusion, MSI status…) and <b>expression / clinical signals</b> (tumor mutational burden, proliferation, drug-resistance markers like ERCC1 and ABCB1). Missing values are imputed to population priors and flagged.</p>
             </div>
-            <div class="confidence">
-              <div class="conf-ring" id="confRing"><span id="confVal">—</span></div>
-              <small>confidence</small>
+          </article>
+          <article class="flow-step">
+            <div class="flow-ico" style="--c:#0ea5e9">🤖</div>
+            <div>
+              <h3>2 · Predict drug response</h3>
+              <p>Rather than guessing one label, Karkive frames the task as <b>drug-response prediction</b>: a multi-output gradient-boosted model estimates a sensitivity score for <em>all 15</em> therapies at once. Gradient-boosted trees handle the messy, non-linear interactions between biomarkers and resistance gradients that linear models miss.</p>
             </div>
-          </div>
-
-          <div class="chips-row">
-            <span class="metric-chip" id="marginChip" title="Sensitivity gap between the top two therapies"></span>
-            <button type="button" class="share-btn" id="shareBtn" title="Copy a link that reproduces this case">🔗 Share this case</button>
-          </div>
-
-          <div class="explain-cols">
-            <div class="explain-col">
-              <h4 class="sec supports">Supporting factors</h4>
-              <ul class="rationale" id="recSupport"></ul>
+          </article>
+          <article class="flow-step">
+            <div class="flow-ico" style="--c:#10b981">📊</div>
+            <div>
+              <h3>3 · Rank with calibrated uncertainty</h3>
+              <p>Therapies are ordered by predicted sensitivity, and a second pair of <b>quantile models</b> (10th / 90th percentile) draws an honest interval around each estimate. A <b>decision margin</b> tells you how clearly the top pick beats the runner-up — a wide margin is a confident call, a narrow one says “these are close.”</p>
             </div>
-            <div class="explain-col" id="cautionCol" hidden>
-              <h4 class="sec cautions">Cautions</h4>
-              <ul class="rationale caution" id="recCautions"></ul>
+          </article>
+          <article class="flow-step">
+            <div class="flow-ico" style="--c:#ec4899">💡</div>
+            <div>
+              <h3>4 · Explain every call</h3>
+              <p>For the recommended therapy, Karkive reports a <b>signed, quantified attribution</b>: how many percentage points each biomarker added or subtracted, split into <b>supporting factors</b> and <b>resistance cautions</b>. The recommendation is a glass box, not a black one.</p>
             </div>
-          </div>
-
-          <h4 class="rank-title">Full ranking <small>(point estimate · 10–90% interval)</small></h4>
-          <ul class="ranking" id="ranking"></ul>
-
-          <details class="parsed">
-            <summary>Parsed sample &amp; notes</summary>
-            <div id="warnings"></div>
-            <pre id="parsedSample"></pre>
-          </details>
+          </article>
         </div>
+      </section>
 
-        <!-- batch results -->
-        <div id="batchResults" hidden>
-          <div class="batch-head">
-            <div><b id="batchCount">0</b> tumor samples ranked</div>
-            <button type="button" class="btn small" id="downloadCsv">⤓ Download CSV</button>
-          </div>
-          <div class="table-wrap">
-            <table class="cohort">
-              <thead>
-                <tr>
-                  <th>#</th><th>Cancer</th><th>Recommended therapy</th>
-                  <th>Match</th><th>Conf.</th><th>Margin</th><th>Runner-up</th>
-                </tr>
-              </thead>
-              <tbody id="cohortBody"></tbody>
-            </table>
-          </div>
-          <details class="parsed"><summary>Notes</summary><div id="batchWarnings"></div></details>
+      <section class="wrap">
+        <h2 class="section-title">Three ways to ask</h2>
+        <div class="cards-3">
+          <article class="feature"><span class="feat-ico" style="--c:#6366f1">📄</span><h3>Upload a file</h3><p>Drop a single tumor as CSV, TSV, or JSON — wide, key-value, or one-record formats all parse.</p></article>
+          <article class="feature"><span class="feat-ico" style="--c:#0ea5e9">🎛️</span><h3>Fill in a form</h3><p>No file? Toggle alterations and slide expression levels; the form is generated from the model's own schema.</p></article>
+          <article class="feature"><span class="feat-ico" style="--c:#10b981">📋</span><h3>Score a cohort</h3><p>Upload one tumor per row and get a ranked recommendation table for the whole group, exportable to CSV.</p></article>
         </div>
+      </section>
 
-        <div class="error" id="errorBox" hidden></div>
+      <div class="band note alt">
+        <strong>An honest footnote.</strong> Because Karkive learns from a biologically grounded
+        <em>synthetic</em> cohort, it's a faithful demonstration of the matching workflow — not a clinically
+        validated predictor. Swap in a real labeled dataset (GDSC, DepMap, NCI-60) and the same pipeline becomes
+        the starting point for a clinical-grade tool.
       </div>
+      <div class="center"><a class="btn primary lg" data-tab="science" href="#science">Explore the science →</a></div>
     </section>
 
-    <section class="disclaimer">
-      <strong>Research / educational use only.</strong>
-      Karkive is a demonstration of pharmacogenomic drug-response modeling. It
-      is <em>not</em> a validated clinical decision-support tool and must not be
-      used to guide patient care. Treatment decisions require a qualified
-      oncologist and validated diagnostics.
+    <!-- ============ THE SCIENCE ============ -->
+    <section class="tab-section" data-pane="science" hidden>
+      <div class="page-head">
+        <span class="eyebrow">Under the hood</span>
+        <h1>The science behind the match</h1>
+        <p class="lede">The therapy panel, the biomarker rules that ground the model, and how well it actually performs.</p>
+      </div>
+
+      <section class="wrap">
+        <h2 class="section-title">The therapy panel</h2>
+        <p class="section-sub">Fifteen agents spanning three modern treatment classes.</p>
+        <div class="panel-cols">
+          <div class="drug-col">
+            <h4 class="dc-title" style="--c:#6366f1">Cytotoxic chemotherapy</h4>
+            <div class="pills">
+              <span class="pill">Cisplatin</span><span class="pill">Carboplatin</span><span class="pill">Paclitaxel</span>
+              <span class="pill">Docetaxel</span><span class="pill">Doxorubicin</span><span class="pill">Gemcitabine</span>
+              <span class="pill">Fluorouracil</span><span class="pill">Irinotecan</span><span class="pill">Temozolomide</span>
+            </div>
+          </div>
+          <div class="drug-col">
+            <h4 class="dc-title" style="--c:#0ea5e9">Targeted therapy</h4>
+            <div class="pills">
+              <span class="pill">Olaparib</span><span class="pill">Erlotinib</span><span class="pill">Trastuzumab</span>
+              <span class="pill">Vemurafenib</span><span class="pill">Crizotinib</span>
+            </div>
+          </div>
+          <div class="drug-col">
+            <h4 class="dc-title" style="--c:#10b981">Immunotherapy</h4>
+            <div class="pills"><span class="pill">Pembrolizumab</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap">
+        <h2 class="section-title">Biomarkers that drive the match</h2>
+        <p class="section-sub">The model is trained on cohorts built from established, textbook biomarker–drug relationships.</p>
+        <div class="rules">
+          <div class="rule"><span class="biomark">HER2 amplification</span><span class="arrow">→</span><span class="drug ok">Trastuzumab</span></div>
+          <div class="rule"><span class="biomark">EGFR mutation</span><span class="arrow">→</span><span class="drug ok">Erlotinib</span></div>
+          <div class="rule"><span class="biomark">BRCA1/2 loss</span><span class="arrow">→</span><span class="drug ok">Olaparib · platinum</span></div>
+          <div class="rule"><span class="biomark">BRAF V600</span><span class="arrow">→</span><span class="drug ok">Vemurafenib</span></div>
+          <div class="rule"><span class="biomark">ALK fusion</span><span class="arrow">→</span><span class="drug ok">Crizotinib</span></div>
+          <div class="rule"><span class="biomark">MSI-high / high TMB</span><span class="arrow">→</span><span class="drug ok">Pembrolizumab</span></div>
+          <div class="rule"><span class="biomark">ERCC1 high</span><span class="arrow">⊣</span><span class="drug bad">platinum resistance</span></div>
+          <div class="rule"><span class="biomark">KRAS mutation</span><span class="arrow">⊣</span><span class="drug bad">EGFR-TKI resistance</span></div>
+        </div>
+      </section>
+
+      <section class="wrap">
+        <h2 class="section-title">How well does it do?</h2>
+        <p class="section-sub">Held-out test set of 1,800 simulated tumors.</p>
+        <div class="metric-grid">
+          <div class="mcard"><b>~82%</b><span>Top-1 accuracy</span></div>
+          <div class="mcard"><b>~98%</b><span>Top-3 accuracy</span></div>
+          <div class="mcard"><b>0.82</b><span>Mean per-drug R²</span></div>
+          <div class="mcard"><b>0.89</b><span>Mean rank correlation</span></div>
+          <div class="mcard"><b>~76%</b><span>10–90% interval coverage</span></div>
+          <div class="mcard"><b>9,000</b><span>Training tumors</span></div>
+        </div>
+      </section>
+
+      <div class="band note">
+        <strong>From demo to clinical-grade.</strong> The labels here come from a rules-based simulator, so the
+        model demonstrates the workflow rather than diagnosing real patients. The architecture, UI, and explanations
+        are exactly what you'd keep when retraining on real pharmacogenomic data.
+      </div>
+      <div class="center"><a class="btn primary lg" data-tab="matcher" href="#matcher">Open the matcher →</a></div>
+    </section>
+
+    <!-- ============ MATCHER ============ -->
+    <section class="tab-section" data-pane="matcher" hidden>
+      <div class="page-head compact">
+        <span class="eyebrow">The tool</span>
+        <h1>Match a tumor to its therapy</h1>
+        <p class="lede">Upload a sample, fill in a profile, or score a whole cohort — then read the ranked match and the reasoning.</p>
+      </div>
+
+      <div class="grid">
+        <!-- Input card -->
+        <div class="card upload-card">
+          <div class="mode-toggle" role="tablist" aria-label="Prediction mode">
+            <button type="button" class="mode active" data-mode="single" role="tab">Single file</button>
+            <button type="button" class="mode" data-mode="manual" role="tab">Manual entry</button>
+            <button type="button" class="mode" data-mode="batch" role="tab">Cohort (batch)</button>
+          </div>
+
+          <h3 id="uploadTitle">1 · Upload tumor sample</h3>
+          <form id="uploadForm">
+            <label class="dropzone" id="dropzone" for="fileInput">
+              <input type="file" id="fileInput" accept=".csv,.tsv,.json,.txt" hidden />
+              <span class="dz-icon" aria-hidden="true">⤓</span>
+              <span class="dz-main" id="dzMain">Drop a sample file or <u>browse</u></span>
+              <span class="dz-sub" id="dzSub">CSV · TSV · JSON — a single tumor sample</span>
+            </label>
+            <div class="file-meta" id="fileMeta" hidden></div>
+
+            <div class="manual-panel" id="manualPanel" hidden>
+              <label class="field">
+                <span class="field-label">Cancer type</span>
+                <select id="m_cancer_type"></select>
+              </label>
+              <div class="field-group">
+                <span class="group-title">Genomic alterations <small>(toggle any present)</small></span>
+                <div class="checks" id="mutChecks"></div>
+              </div>
+              <div class="field-group">
+                <span class="group-title">Expression &amp; clinical</span>
+                <div class="sliders" id="contSliders"></div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn primary" id="submitBtn" disabled>Match therapy</button>
+          </form>
+
+          <div class="samples">
+            <p id="samplesLabel">No sample handy? Try one:</p>
+            <div class="sample-chips" id="singleChips">
+              <a class="chip" href="/static/samples/sample_brca_ovarian.csv" download>BRCA⁺ ovarian</a>
+              <a class="chip" href="/static/samples/sample_egfr_lung.csv" download>EGFR⁺ lung</a>
+              <a class="chip" href="/static/samples/sample_her2_breast.json" download>HER2⁺ breast</a>
+              <a class="chip" href="/static/samples/sample_msi_colorectal.csv" download>MSI-high colorectal</a>
+            </div>
+            <div class="sample-chips" id="batchChips" hidden>
+              <a class="chip" href="/static/samples/sample_cohort.csv" download>Example 8-patient cohort</a>
+            </div>
+            <p class="hint">Download one, then upload it above.</p>
+          </div>
+        </div>
+
+        <!-- Results card -->
+        <div class="card result-card" id="resultCard">
+          <h3 id="resultTitle">2 · Recommended therapy</h3>
+          <div class="placeholder" id="placeholder">
+            <span aria-hidden="true">🧬</span>
+            <p>Upload a sample to see the ranked match.</p>
+          </div>
+
+          <div id="results" hidden>
+            <div class="headline">
+              <div>
+                <span class="kicker">Top match</span>
+                <div class="rec-name" id="recName">—</div>
+                <div class="rec-class" id="recClass"></div>
+                <div class="rec-band" id="recBand"></div>
+              </div>
+              <div class="confidence">
+                <div class="conf-ring" id="confRing"><span id="confVal">—</span></div>
+                <small>confidence</small>
+              </div>
+            </div>
+
+            <div class="chips-row">
+              <span class="metric-chip" id="marginChip" title="Sensitivity gap between the top two therapies"></span>
+              <button type="button" class="share-btn" id="shareBtn" title="Copy a link that reproduces this case">🔗 Share this case</button>
+            </div>
+
+            <div class="explain-cols">
+              <div class="explain-col">
+                <h4 class="sec supports">Supporting factors</h4>
+                <ul class="rationale" id="recSupport"></ul>
+              </div>
+              <div class="explain-col" id="cautionCol" hidden>
+                <h4 class="sec cautions">Cautions</h4>
+                <ul class="rationale caution" id="recCautions"></ul>
+              </div>
+            </div>
+
+            <h4 class="rank-title">Full ranking <small>(point estimate · 10–90% interval)</small></h4>
+            <ul class="ranking" id="ranking"></ul>
+
+            <details class="parsed">
+              <summary>Parsed sample &amp; notes</summary>
+              <div id="warnings"></div>
+              <pre id="parsedSample"></pre>
+            </details>
+          </div>
+
+          <div id="batchResults" hidden>
+            <div class="batch-head">
+              <div><b id="batchCount">0</b> tumor samples ranked</div>
+              <button type="button" class="btn small" id="downloadCsv">⤓ Download CSV</button>
+            </div>
+            <div class="table-wrap">
+              <table class="cohort">
+                <thead>
+                  <tr><th>#</th><th>Cancer</th><th>Recommended therapy</th><th>Match</th><th>Conf.</th><th>Margin</th><th>Runner-up</th></tr>
+                </thead>
+                <tbody id="cohortBody"></tbody>
+              </table>
+            </div>
+            <details class="parsed"><summary>Notes</summary><div id="batchWarnings"></div></details>
+          </div>
+
+          <div class="error" id="errorBox" hidden></div>
+        </div>
+      </div>
+
+      <div class="band note">
+        <strong>Research / educational use only.</strong> Not a validated clinical decision-support tool.
+        Treatment decisions require a qualified oncologist and validated diagnostics.
+      </div>
     </section>
   </main>
 
   <footer>
-    <span>Karkive · gradient-boosted multi-output drug-response model with quantile uncertainty</span>
-    <a href="/api/health" target="_blank" rel="noopener">model status</a>
+    <div class="foot-inner">
+      <span class="foot-brand"><span class="brand-mark">◈</span> Karkive</span>
+      <span>Gradient-boosted multi-output drug-response model with quantile uncertainty</span>
+      <a href="/api/health" target="_blank" rel="noopener">model status</a>
+    </div>
   </footer>
 
   <script src="/static/app.js"></script>
