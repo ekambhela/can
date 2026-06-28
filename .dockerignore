@@ -5,7 +5,7 @@ __pycache__/
 .venv/
 venv/
 .env
-artifacts/
+artifacts/dataset_*.csv
 .server.log
 *.log
 docs/
