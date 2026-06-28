@@ -72,7 +72,7 @@ function animateCounters() {
 /* ---- scroll-reveal ---- */
 (function setupReveal() {
   const sel = ".feature, .flow-step, .stat-cell, .pstep, .rule, .mcard, .drug-col, " +
-              ".vision-card, .match-figure, .band.mission, .pipeline";
+              ".vision-card, .match-figure, .band.mission, .pipeline, .preview";
   const els = document.querySelectorAll(sel);
   if (!("IntersectionObserver" in window)) {
     els.forEach((el) => el.classList.add("in"));
@@ -84,6 +84,33 @@ function animateCounters() {
     });
   }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
   els.forEach((el) => io.observe(el));
+})();
+
+/* ---- scroll-driven effects: progress bar, side spine, parallax ---- */
+(function scrollFX() {
+  const prog = document.getElementById("scrollProgress");
+  const dot = document.getElementById("spineDot");
+  const par = Array.from(document.querySelectorAll(".parallax"));
+  const vh = () => window.innerHeight;
+  let ticking = false;
+  function update() {
+    ticking = false;
+    const st = window.scrollY || 0;
+    const max = (document.documentElement.scrollHeight - vh()) || 1;
+    const frac = Math.min(1, Math.max(0, st / max));
+    if (prog) prog.style.transform = "scaleX(" + frac + ")";
+    if (dot) dot.style.top = (frac * 100) + "%";
+    for (const el of par) {
+      const d = parseFloat(el.dataset.depth || "0.05");
+      const r = el.getBoundingClientRect();
+      const fromCenter = r.top + r.height / 2 - vh() / 2;
+      el.style.transform = "translate3d(0," + (-fromCenter * d).toFixed(1) + "px,0)";
+    }
+  }
+  function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll);
+  update();
 })();
 
 /* ---- mode toggle ---- */
