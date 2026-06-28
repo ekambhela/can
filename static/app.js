@@ -40,6 +40,9 @@ function showTab(name) {
 document.querySelectorAll("[data-tab]").forEach((el) => {
   el.addEventListener("click", (e) => { e.preventDefault(); showTab(el.dataset.tab); });
 });
+window.addEventListener("hashchange", () => {
+  showTab((location.hash || "").replace("#", "") || "home");
+});
 
 /* ---- animated counters (home) ---- */
 let countersDone = false;
@@ -66,6 +69,23 @@ function animateCounters() {
   showTab((location.hash || "").replace("#", "") || "home");
 })();
 
+/* ---- scroll-reveal ---- */
+(function setupReveal() {
+  const sel = ".feature, .flow-step, .stat-cell, .pstep, .rule, .mcard, .drug-col, " +
+              ".vision-card, .match-figure, .band.mission, .pipeline";
+  const els = document.querySelectorAll(sel);
+  if (!("IntersectionObserver" in window)) {
+    els.forEach((el) => el.classList.add("in"));
+    return;
+  }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+  els.forEach((el) => io.observe(el));
+})();
+
 /* ---- mode toggle ---- */
 document.querySelectorAll(".mode").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -84,8 +104,8 @@ document.querySelectorAll(".mode").forEach((btn) => {
     document.querySelector(".samples").hidden = manual;
     if (!manual) {
       $("dzSub").textContent = single
-        ? "CSV · TSV · JSON — a single tumor sample"
-        : "CSV · TSV · JSON — one tumor per row";
+        ? "CSV · TSV · JSON · a single tumor sample"
+        : "CSV · TSV · JSON · one tumor per row";
       $("samplesLabel").textContent = single ? "No sample handy? Try one:" : "No cohort handy? Try one:";
       $("singleChips").hidden = !single;
       $("batchChips").hidden = single;
