@@ -133,11 +133,11 @@ downloadable from the app.
 ```bash
 pip install -r requirements.txt
 
-# start the web app — the model trains itself (~7 s) on first request
+# start the web app (a pre-trained model is committed, so it loads instantly)
 uvicorn app:app --reload
 # open http://localhost:8000
 
-# (optional) train ahead of time / re-evaluate
+# (optional) retrain / re-evaluate, then commit the refreshed artifacts/
 python -m model.train
 ```
 
@@ -196,7 +196,7 @@ model/
   train.py             trains + evaluates the model + quantile interval models
   predict.py           parse upload → rank → intervals → attribution (single + batch)
 artifacts/
-  model.joblib         trained model bundle (auto-generated on first run)
+  model.joblib         trained model bundle (committed; no training at build/boot)
   metrics.json         held-out evaluation metrics
 templates/index.html   single-page UI (single + cohort modes)
 static/                style.css, app.js, sample files (incl. sample_cohort.csv)

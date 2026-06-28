@@ -1,4 +1,4 @@
-# Karkive — container image for any web host (Render, Railway, Fly, Cloud Run,
+# Karkive: container image for any web host (Render, Railway, Fly, Cloud Run,
 # Hugging Face Spaces with the Docker SDK, etc.)
 FROM python:3.11-slim
 
@@ -12,12 +12,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# App source.
+# App source, including the pre-trained model in artifacts/. No training runs
+# at build or boot, so the image builds fast and the container starts in seconds.
 COPY . .
-
-# Train the model at build time so the running container boots fast
-# (otherwise the model self-trains on the first request, ~30s).
-RUN python -m model.train
 
 EXPOSE 8000
 

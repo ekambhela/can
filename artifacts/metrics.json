@@ -1,0 +1,26 @@
+{
+  "n_test": 1800,
+  "n_therapies": 15,
+  "top1_accuracy": 0.8183,
+  "top3_accuracy": 0.9761,
+  "mean_r2": 0.8199,
+  "mean_spearman": 0.8931,
+  "per_drug_r2": {
+    "Cisplatin": 0.813,
+    "Carboplatin": 0.858,
+    "Paclitaxel": 0.799,
+    "Docetaxel": 0.685,
+    "Doxorubicin": 0.705,
+    "Gemcitabine": 0.777,
+    "Fluorouracil": 0.769,
+    "Irinotecan": 0.677,
+    "Olaparib": 0.904,
+    "Erlotinib": 0.915,
+    "Trastuzumab": 0.879,
+    "Vemurafenib": 0.911,
+    "Crizotinib": 0.836,
+    "Pembrolizumab": 0.917,
+    "Temozolomide": 0.852
+  },
+  "interval_coverage": 0.7554
+}

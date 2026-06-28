@@ -5,8 +5,9 @@ __pycache__/
 venv/
 .env
 
-# Auto-generated model artifacts (rebuilt on first run / by `python -m model.train`)
-artifacts/
+# The trained model is committed (artifacts/model.joblib, metrics.json) so the
+# Docker image needs no training step. Only the regenerable datasets are ignored.
+artifacts/dataset_*.csv
 
 # OS / editor
 .DS_Store
