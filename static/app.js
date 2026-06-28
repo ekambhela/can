@@ -36,6 +36,8 @@ function showTab(name) {
   if (name === "home") animateCounters();
   if (history.replaceState) history.replaceState(null, "", "#" + name);
   window.scrollTo(0, 0);
+  // recompute parallax for the newly shown pane (its bg was display:none)
+  window.dispatchEvent(new Event("scroll"));
 }
 document.querySelectorAll("[data-tab]").forEach((el) => {
   el.addEventListener("click", (e) => { e.preventDefault(); showTab(el.dataset.tab); });
