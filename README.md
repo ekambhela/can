@@ -5,6 +5,11 @@ with as much precision as the model can muster. Upload a tumor profile and the
 model ranks a panel of 15 chemotherapies and targeted agents by predicted drug
 sensitivity, and explains the biomarkers behind each match.
 
+The single-page site is organized into four tabs — a content-rich **Home**
+(mission, why precision matching matters, animated stats), **How it works**
+(methodology), **The science** (therapy panel, biomarker rules, performance),
+and the **Matcher** tool — in a light theme with custom SVG graphics.
+
 > ⚠️ **Research / educational use only.** Karkive is a demonstration of
 > pharmacogenomic drug-response modeling. It is **not** a validated clinical
 > decision-support tool and must not be used to guide patient care.
