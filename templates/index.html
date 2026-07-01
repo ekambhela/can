@@ -55,6 +55,10 @@
             <span class="dot-sep"></span>
             <span><b>real</b> cell-line data</span>
           </div>
+          <div class="hero-example" aria-live="polite">
+            <span class="he-live"><span class="he-dot"></span>example</span>
+            <b id="rotEx">BRAF melanoma → AZ628</b>
+          </div>
         </div>
         <div class="hero-art">
           <div class="art-blob art-blob-a parallax" data-depth="0.06"></div>
@@ -92,6 +96,20 @@
           <strong>Karkive exists to make that difference visible</strong>, turning a
           tumor's genomics into a ranked, explained treatment shortlist in seconds.
         </p>
+      </div>
+
+      <!-- work in progress -->
+      <div class="wip">
+        <span class="wip-badge">🚧 Work in progress</span>
+        <div class="wip-body">
+          <h3>This is an evolving research project</h3>
+          <p>
+            Karkive is under active development and subject to many changes. The model, the
+            underlying data, the drug panel, and the design are all moving targets, expect it to
+            look and behave differently as it grows. Right now I'm working on expanding the drug
+            panel with the full GDSC annotation. Feedback and rough edges are part of the process.
+          </p>
+        </div>
       </div>
 
       <!-- ===== VISION ===== -->
@@ -479,17 +497,17 @@
           </form>
 
           <div class="samples">
-            <p id="samplesLabel">No sample handy? Try one:</p>
+            <p id="samplesLabel">Click an example to match it instantly:</p>
             <div class="sample-chips" id="singleChips">
-              <a class="chip" href="/static/samples/sample_braf_melanoma.csv" download>BRAF⁺ melanoma</a>
-              <a class="chip" href="/static/samples/sample_egfr_lung.csv" download>EGFR⁺ lung</a>
-              <a class="chip" href="/static/samples/sample_her2_breast.json" download>HER2⁺ breast</a>
-              <a class="chip" href="/static/samples/sample_nras_colorectal.csv" download>NRAS⁺ colorectal</a>
+              <a class="chip run" href="/static/samples/sample_braf_melanoma.csv" data-kind="single">BRAF⁺ melanoma</a>
+              <a class="chip run" href="/static/samples/sample_egfr_lung.csv" data-kind="single">EGFR⁺ lung</a>
+              <a class="chip run" href="/static/samples/sample_her2_breast.json" data-kind="single">HER2⁺ breast</a>
+              <a class="chip run" href="/static/samples/sample_nras_colorectal.csv" data-kind="single">NRAS⁺ colorectal</a>
             </div>
             <div class="sample-chips" id="batchChips" hidden>
-              <a class="chip" href="/static/samples/sample_cohort.csv" download>Example 8-patient cohort</a>
+              <a class="chip run" href="/static/samples/sample_cohort.csv" data-kind="batch">Example cohort</a>
             </div>
-            <p class="hint">Download one, then upload it above.</p>
+            <p class="hint">One click runs the match, no download needed (right-click to download).</p>
           </div>
         </div>
 

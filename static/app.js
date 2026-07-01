@@ -136,7 +136,7 @@ document.querySelectorAll(".mode").forEach((btn) => {
       $("dzSub").textContent = single
         ? "CSV · TSV · JSON · a single tumor sample"
         : "CSV · TSV · JSON · one tumor per row";
-      $("samplesLabel").textContent = single ? "No sample handy? Try one:" : "No cohort handy? Try one:";
+      $("samplesLabel").textContent = single ? "Click an example to match it instantly:" : "Click the cohort to rank it:";
       $("singleChips").hidden = !single;
       $("batchChips").hidden = single;
     }
@@ -411,3 +411,61 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
+
+/* ---- click-to-run example samples ---- */
+document.querySelectorAll(".chip.run").forEach((a) => {
+  a.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const url = a.getAttribute("href");
+    const kind = a.dataset.kind || "single";
+    $("errorBox").hidden = true;
+    $("results").hidden = true;
+    $("batchResults").hidden = true;
+    $("placeholder").hidden = false;
+    $("placeholder").innerHTML =
+      `<span class="spinner"></span><p>${kind === "batch" ? "Ranking cohort…" : "Matching therapy…"}</p>`;
+    try {
+      const blob = await (await fetch(url)).blob();
+      const fd = new FormData();
+      fd.append("file", blob, url.split("/").pop());
+      const ep = kind === "batch" ? "/api/predict_batch" : "/api/predict";
+      const r = await fetch(ep, { method: "POST", body: fd });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || "Prediction failed.");
+      kind === "batch" ? renderBatch(data) : renderSingle(data);
+    } catch (err) {
+      $("placeholder").hidden = true;
+      const box = $("errorBox"); box.hidden = false; box.textContent = "⚠ " + err.message;
+    }
+  });
+});
+
+/* ---- rotating hero example ---- */
+(function heroTicker() {
+  const el = document.getElementById("rotEx");
+  if (!el) return;
+  const items = ["BRAF melanoma → AZ628", "EGFR lung → Erlotinib",
+                 "NRAS colorectal → AZ628", "MET-driven tumor → PHA-665752"];
+  let i = 0;
+  setInterval(() => {
+    i = (i + 1) % items.length;
+    el.classList.add("swap");
+    setTimeout(() => { el.textContent = items[i]; el.classList.remove("swap"); }, 260);
+  }, 2800);
+})();
+
+/* ---- subtle 3D tilt on cards (pointer devices) ---- */
+(function cardTilt() {
+  if (window.matchMedia("(hover: none)").matches) return;
+  document.querySelectorAll(".feature, .vision-card").forEach((card) => {
+    card.addEventListener("mousemove", (e) => {
+      const r = card.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      card.style.setProperty("transform",
+        `perspective(720px) rotateX(${(-py * 5).toFixed(2)}deg) rotateY(${(px * 5).toFixed(2)}deg) translateY(-3px)`,
+        "important");
+    });
+    card.addEventListener("mouseleave", () => card.style.removeProperty("transform"));
+  });
+})();
