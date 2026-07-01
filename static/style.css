@@ -503,3 +503,35 @@ html.js .in { opacity: 1 !important; transform: none !important; }
   html.js .rule, html.js .mcard, html.js .drug-col, html.js .vision-card,
   html.js .match-figure, html.js .band.mission, html.js .pipeline { opacity: 1; transform: none; }
 }
+
+/* ============ HERO EXAMPLE TICKER ============ */
+.hero-example {
+  margin-top: 16px; display: inline-flex; align-items: center; gap: 10px;
+  font-size: 14px; color: var(--ink-2);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 14px; box-shadow: var(--shadow-sm);
+}
+.he-live { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .8px; color: var(--green); }
+.he-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+  animation: dotpulse 1.6s ease-in-out infinite; }
+#rotEx { color: var(--ink); font-family: 'Tinos','Times New Roman',serif;
+  transition: opacity .25s ease, transform .25s ease; display: inline-block; }
+#rotEx.swap { opacity: 0; transform: translateY(-4px); }
+
+/* ============ WORK-IN-PROGRESS ============ */
+.wip {
+  display: flex; gap: 18px; align-items: flex-start; margin: 40px 0;
+  padding: 22px 26px; border-radius: var(--radius);
+  background: repeating-linear-gradient(-45deg, #fff8ed, #fff8ed 14px, #fffdf7 14px, #fffdf7 28px);
+  border: 1.5px dashed #f6bb52;
+}
+.wip-badge { flex: none; font-size: 13px; font-weight: 700; color: #9a5b09;
+  background: #ffe7bd; border: 1px solid #f6bb52; border-radius: 999px; padding: 6px 13px; white-space: nowrap; }
+.wip-body h3 { margin: 0 0 6px; font-size: 18px; color: #7c4a08; }
+.wip-body p { margin: 0; color: #8a5a1c; font-size: 14.5px; line-height: 1.55; }
+@media (max-width: 620px) { .wip { flex-direction: column; gap: 12px; } }
+
+/* ============ CARD TILT (desktop pointer) ============ */
+.feature, .vision-card { transform-style: preserve-3d; }
+.feature:hover, .vision-card:hover { transition: transform .1s ease, box-shadow .2s ease !important; }
