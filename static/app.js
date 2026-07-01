@@ -20,7 +20,7 @@ async function loadStats() {
     const m = d.metrics || {};
     const set = (id, val) => { const el = $(id); if (el && val != null) el.textContent = val; };
     set("statTop1", m.top1_accuracy != null ? Math.round(m.top1_accuracy * 100) + "%" : null);
-    set("statTop3", m.top3_accuracy != null ? Math.round(m.top3_accuracy * 100) + "%" : null);
+    set("statTop3", m.top10_accuracy != null ? Math.round(m.top10_accuracy * 100) + "%" : null);
     set("statSpear", m.mean_spearman != null ? m.mean_spearman.toFixed(2) : null);
     set("nTherapies", m.n_drugs || null);
     set("nCellLines", m.n_cell_lines || null);
@@ -444,8 +444,8 @@ document.querySelectorAll(".chip.run").forEach((a) => {
 (function heroTicker() {
   const el = document.getElementById("rotEx");
   if (!el) return;
-  const items = ["BRAF melanoma → AZ628", "EGFR lung → Erlotinib",
-                 "NRAS colorectal → AZ628", "MET-driven tumor → PHA-665752"];
+  const items = ["BRAF melanoma → Dabrafenib", "EGFR lung → Gefitinib",
+                 "HER2 breast → Afatinib", "MET-driven tumor → Crizotinib"];
   let i = 0;
   setInterval(() => {
     i = (i + 1) % items.length;

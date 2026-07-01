@@ -48,8 +48,8 @@ def build_pipeline(tissues: list[str]) -> Pipeline:
         ("bin", "passthrough", BINARY_FEATURES),
     ])
     gbm = HistGradientBoostingRegressor(
-        max_iter=300, learning_rate=0.06, l2_regularization=1.0,
-        max_leaf_nodes=15, early_stopping=True, validation_fraction=0.1,
+        max_iter=170, learning_rate=0.07, l2_regularization=1.5,
+        max_leaf_nodes=13, early_stopping=True, validation_fraction=0.12,
         random_state=0,
     )
     return Pipeline([("pre", pre), ("gbm", gbm)])
@@ -88,18 +88,23 @@ def main(seed: int = 0) -> dict:
         test_pred[did] = dict(zip(te_i.tolist(), p.tolist()))
         models[name] = pipe
 
-    # ranking metrics across drugs, per held-out line
-    hits = hits3 = tot = 0
+    # ranking metrics across drugs, per held-out line. With a large panel, top-1
+    # is near-random, so we also report top-10 and the mean percentile rank of
+    # the truly-best drug within the model's ranking.
+    hits = hits3 = hits10 = tot = 0
+    pct_ranks = []
     truth = {did: targets[col].to_numpy() for did, col in DRUG_COL.items()}
     for i in idx[cut:]:
         avail = [d for d in DRUG_COL if not np.isnan(truth[d][i]) and i in test_pred[d]]
-        if len(avail) < 3:
+        if len(avail) < 5:
             continue
         best = max(avail, key=lambda d: truth[d][i])
         order = sorted(avail, key=lambda d: test_pred[d][i], reverse=True)
         tot += 1
         hits += order[0] == best
         hits3 += best in order[:3]
+        hits10 += best in order[:10]
+        pct_ranks.append(1 - order.index(best) / (len(order) - 1))  # 1 = best ranked first
 
     metrics = {
         "n_cell_lines": n,
@@ -109,6 +114,8 @@ def main(seed: int = 0) -> dict:
         "mean_spearman": round(float(np.mean(list(per_rho.values()))), 3),
         "top1_accuracy": round(hits / tot, 3),
         "top3_accuracy": round(hits3 / tot, 3),
+        "top10_accuracy": round(hits10 / tot, 3),
+        "best_drug_percentile": round(float(np.mean(pct_ranks)), 3),
         "n_test_lines": tot,
         "per_drug_spearman": per_rho,
         "per_drug_r2": per_r2,
@@ -120,11 +127,11 @@ def main(seed: int = 0) -> dict:
         "models": models,
         "tissues": tissues,
         "binary_features": BINARY_FEATURES,
-        "drug_meta": {DRUGS[i][0]: {"id": i, "target": DRUGS[i][1]} for i in DRUGS},
+        "drug_meta": {DRUGS[i][0]: {"id": i, "target": THERAPY_CLASS[DRUGS[i][0]]} for i in DRUGS},
         "therapy_class": THERAPY_CLASS,
         "resid_std": resid_std,
         "metrics": metrics,
-        "version": 3,
+        "version": 4,
         "data": "GDSC release 17 (real cell-line drug response)",
     }
     joblib.dump(bundle, os.path.join(ARTIFACTS, "model.joblib"))

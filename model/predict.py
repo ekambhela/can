@@ -185,10 +185,12 @@ def _pct(z: float) -> float:
 
 
 def _confidence(zs: np.ndarray) -> float:
-    z = (zs - zs.mean()) / (zs.std() + 1e-9)
-    ex = np.exp(z - z.max())
-    p = ex / ex.sum()
-    return float(p.max())
+    """How clearly the top pick stands out from the whole drug panel: the top
+    drug's sensitivity as a percentile of all drugs' predictions for this sample.
+    (Softmax-max is unstable once the panel is large, so we use stand-out.)"""
+    zs = np.asarray(zs, dtype=float)
+    z = (zs.max() - zs.mean()) / (zs.std() + 1e-9)
+    return float(min(0.99, norm.cdf(z)))
 
 
 def _explain(sample: dict, therapy: str, models: dict) -> dict:
@@ -217,7 +219,7 @@ def _explain(sample: dict, therapy: str, models: dict) -> dict:
     return {"supporting": supporting, "cautions": cautions}
 
 
-def predict(sample: dict, top_k: int | None = None) -> dict:
+def predict(sample: dict, top_k: int | None = 8) -> dict:
     bundle = load_bundle()
     models = bundle["models"]
     meta = bundle["drug_meta"]

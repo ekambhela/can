@@ -39,22 +39,47 @@ MSI = "MSI"                       # microsatellite instability (0/1)
 # The full ordered binary feature list (tissue is handled separately, one-hot).
 BINARY_FEATURES = MUTATION_FEATURES + [ERBB2_AMP, MSI]
 
-# --- therapy panel: drugs we can authoritatively name (GDSC db export) ---------
-# id -> (display name, putative target / class)
-DRUGS = {
-    1:  ("Erlotinib",   "EGFR inhibitor"),
-    3:  ("Rapamycin",   "mTOR inhibitor"),
-    5:  ("Sunitinib",   "Multi-RTK inhibitor (VEGFR/PDGFR/KIT)"),
-    6:  ("PHA-665752",  "MET inhibitor"),
-    9:  ("MG-132",      "Proteasome inhibitor"),
-    11: ("Paclitaxel",  "Taxane (microtubule stabilizer)"),
-    17: ("Cyclopamine", "Hedgehog / SMO inhibitor"),
-    29: ("AZ628",       "BRAF inhibitor"),
-    30: ("Sorafenib",   "Multi-kinase inhibitor (RAF/VEGFR)"),
-}
+# --- therapy panel: the full GDSC compound set, named from the GDSC drug list --
+# The drug annotation (drug_id -> name / targets / target pathway) is the public
+# GDSC "screened compounds" table, validated against the authoritative GDSC
+# database export bundled in gdsctools (9/9 anchor IDs match exactly).
+# See data/gdsc/README.md.
+def _load_drugs() -> dict:
+    """Return {drug_id: (display_name, target_pathway, targets)} for every v17
+    drug column we can name. Duplicate names are disambiguated by drug id."""
+    import pandas as pd
+    ic_cols = pd.read_csv(os.path.join(DATA_DIR, "IC50_v17.csv.gz"), nrows=0).columns
+    v17_ids = [int(c.split("_")[1]) for c in ic_cols if c.startswith("Drug_")]
+    dl = pd.read_csv(os.path.join(DATA_DIR, "drug_list_gdsc.csv"))
+    meta = {int(r.drug_id): (str(r.Name).strip(), str(r["Target pathway"]).strip(),
+                             str(r.Targets).strip())
+            for _, r in dl.iterrows()}
+    out, seen = {}, {}
+    for did in v17_ids:
+        if did not in meta:
+            continue
+        name, pathway, targets = meta[did]
+        if name in seen:                       # same drug screened twice -> unique key
+            name = f"{name} ({did})"
+        seen[name] = did
+        out[did] = (name, pathway, targets)
+    return out
+
+
+DRUGS = _load_drugs()
 DRUG_COL = {i: f"Drug_{i}_IC50" for i in DRUGS}
 THERAPY_NAMES = [DRUGS[i][0] for i in DRUGS]
-THERAPY_CLASS = {DRUGS[i][0]: DRUGS[i][1] for i in DRUGS}
+
+def _class_label(pathway: str, targets: str) -> str:
+    """A short, human class for a drug: the target pathway, or its targets when
+    the pathway is uninformative ('Other')."""
+    p = (pathway or "").strip()
+    if p and p.lower() not in ("other", "other, kinases", "unknown", "nan", ""):
+        return p
+    t = (targets or "").strip()
+    return t if t and t.lower() != "nan" else "Other"
+
+THERAPY_CLASS = {DRUGS[i][0]: _class_label(DRUGS[i][1], DRUGS[i][2]) for i in DRUGS}
 
 # --- friendly labels -----------------------------------------------------------
 TISSUE_LABELS = {

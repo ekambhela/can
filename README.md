@@ -25,11 +25,13 @@ tool — in a light theme with custom graphics.
   (natural-log IC50).
 - **Genomic features:** per cell line — tissue of origin, MSI status, driver-gene
   mutation flags, and copy-number alterations (incl. ERBB2/HER2 amplification).
-- **Drug panel:** the 9 compounds the bundled data names authoritatively
-  (Erlotinib, Rapamycin, Sunitinib, PHA-665752, MG-132, Paclitaxel, Cyclopamine,
-  AZ628, Sorafenib). The full 265-drug name list requires the GDSC annotation
-  file from cancerrxgene.org; the panel is deliberately limited to drugs that can
-  be named without risk of mislabeling.
+- **Drug panel:** all **264** GDSC compounds we can name authoritatively, spanning
+  **24** target pathways (BRAF/MEK inhibitors, EGFR/HER2 inhibitors, PI3K/MTOR,
+  DNA-damaging cytotoxics, cell-cycle, and more). Names and target pathways come
+  from the public GDSC screened-compounds annotation (redistributed via the
+  DeepCDR repo), validated against the authoritative 9-drug GDSC database export
+  bundled in `gdsctools` (all anchor IDs match). 264 of the 265 v17 drug columns
+  are named; the one unnameable column is dropped rather than mislabeled.
 - **Cite:** Iorio et al., *Cell* 2016; Yang et al., *Nucleic Acids Research* 2013.
 
 ## How the model works
@@ -54,16 +56,17 @@ tool — in a light theme with custom graphics.
 
 | Metric | Value |
 | --- | --- |
-| Top-3 accuracy (true best drug in top 3) | **~58%** |
-| Top-1 accuracy | **~28%** |
-| Mean per-drug Spearman (predicted vs real IC50) | **~0.26** |
-| Mean per-drug R² | **~0.08** |
+| Top-10 accuracy (true best drug in top 10 of 264) | **~30%** |
+| Mean percentile rank of the true best drug | **~0.72** |
+| Mean per-drug Spearman (predicted vs real IC50) | **~0.31** |
+| Mean per-drug R² | **~0.14** |
 
 These are honest, modest numbers — predicting drug response from a small
 biomarker panel is genuinely hard. What matters is that the model **recovers real
-biology**: BRAF mutation → strong AZ628 (BRAF-inhibitor) sensitivity, measured
-directly in the data at **p < 10⁻⁶** (and NRAS mutation likewise, via the
-RAS/RAF pathway).
+biology**: BRAF mutation → strong sensitivity to BRAF inhibitors (Dabrafenib,
+PLX-4720, SB590885), measured directly in the data at **p < 10⁻⁶**; NRAS mutation
+likewise via the RAS/RAF pathway; ERBB2 amplification → HER2 inhibitors (Afatinib,
+CP724714); EGFR mutation → EGFR inhibitors (Gefitinib, Afatinib).
 
 ## Input format
 
