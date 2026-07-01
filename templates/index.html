@@ -41,7 +41,7 @@
           <p class="lede">
             Karkive learns from <b id="nCellLines">988</b> real human cancer cell lines
             in the GDSC drug-screening project, then reads a tumor's genomic profile and
-            ranks <b id="nTherapies">9</b> drugs by predicted sensitivity, with the
+            ranks <b id="nTherapies">264</b> drugs by predicted sensitivity, with the
             biomarkers behind every recommendation.
           </p>
           <div class="hero-cta">
@@ -49,15 +49,15 @@
             <a class="btn ghost lg" data-tab="how" href="#how">See how it works</a>
           </div>
           <div class="hero-trust">
-            <span><b id="statTop3">58%</b> top-3 accuracy</span>
+            <span><b id="statTop3">30%</b> top-10 accuracy</span>
             <span class="dot-sep"></span>
-            <span><b id="statSpear">0.26</b> mean rank correlation</span>
+            <span><b id="statSpear">0.31</b> mean rank correlation</span>
             <span class="dot-sep"></span>
             <span><b>real</b> cell-line data</span>
           </div>
           <div class="hero-example" aria-live="polite">
             <span class="he-live"><span class="he-dot"></span>example</span>
-            <b id="rotEx">BRAF melanoma → AZ628</b>
+            <b id="rotEx">BRAF melanoma → Dabrafenib</b>
           </div>
         </div>
         <div class="hero-art">
@@ -73,17 +73,17 @@
             <div class="pv-headline">
               <div>
                 <span class="pv-kicker">Top match</span>
-                <div class="pv-name">AZ628</div>
-                <div class="pv-sub">BRAF inhibitor · 80th-pct sensitivity</div>
+                <div class="pv-name">Dabrafenib</div>
+                <div class="pv-sub">BRAF inhibitor · 99th-pct sensitivity</div>
               </div>
-              <div class="pv-ring"><span>80%</span></div>
+              <div class="pv-ring"><span>99%</span></div>
             </div>
-            <div class="pv-meta"><span class="pv-margin">BRAF mutation · +38 pts</span></div>
+            <div class="pv-meta"><span class="pv-margin">BRAF mutation · +61 pts</span></div>
             <ul class="pv-bars">
-              <li><span class="pv-drug">AZ628</span><span class="pv-bar"><i style="--w:80%"></i></span><b>80%</b></li>
-              <li><span class="pv-drug">Sorafenib</span><span class="pv-bar"><i style="--w:58%"></i></span><b>58%</b></li>
-              <li><span class="pv-drug">Paclitaxel</span><span class="pv-bar"><i style="--w:52%"></i></span><b>52%</b></li>
-              <li><span class="pv-drug">Erlotinib</span><span class="pv-bar"><i style="--w:44%"></i></span><b>44%</b></li>
+              <li><span class="pv-drug">Dabrafenib</span><span class="pv-bar"><i style="--w:99%"></i></span><b>99%</b></li>
+              <li><span class="pv-drug">SB590885</span><span class="pv-bar"><i style="--w:99%"></i></span><b>99%</b></li>
+              <li><span class="pv-drug">PLX-4720</span><span class="pv-bar"><i style="--w:98%"></i></span><b>98%</b></li>
+              <li><span class="pv-drug">(5Z)-7-Oxozeaenol</span><span class="pv-bar"><i style="--w:96%"></i></span><b>96%</b></li>
             </ul>
           </div>
         </div>
@@ -106,8 +106,8 @@
           <p>
             Karkive is under active development and subject to many changes. The model, the
             underlying data, the drug panel, and the design are all moving targets, expect it to
-            look and behave differently as it grows. Right now I'm working on expanding the drug
-            panel with the full GDSC annotation. Feedback and rough edges are part of the process.
+            look and behave differently as it grows. The drug panel now spans the full GDSC screen —
+            264 named compounds across 24 target pathways. Feedback and rough edges are part of the process.
           </p>
         </div>
       </div>
@@ -214,9 +214,9 @@
             <!-- therapy pills with names inside -->
             <g class="rx">
               <rect class="rxn" x="690" y="78"  width="150" height="34" rx="17" style="--c:#10b981"/>
-              <text class="rxt" x="765" y="100" text-anchor="middle">AZ628</text>
+              <text class="rxt" x="765" y="100" text-anchor="middle">Dabrafenib</text>
               <rect class="rxn" x="690" y="148" width="150" height="34" rx="17" style="--c:#0ea5e9"/>
-              <text class="rxt" x="765" y="170" text-anchor="middle">Erlotinib</text>
+              <text class="rxt" x="765" y="170" text-anchor="middle">Gefitinib</text>
               <rect class="rxn" x="690" y="218" width="150" height="34" rx="17" style="--c:#6366f1"/>
               <text class="rxt" x="765" y="240" text-anchor="middle">Paclitaxel</text>
             </g>
@@ -256,9 +256,9 @@
       <section class="wrap">
         <div class="stat-band">
           <div class="stat-cell"><b class="count" data-to="988">0</b><span>cancer cell lines</span><small>real GDSC drug screens</small></div>
-          <div class="stat-cell"><b class="count" data-to="9">0</b><span>drugs ranked</span><small>named GDSC compounds</small></div>
-          <div class="stat-cell"><b class="count" data-to="58" data-suffix="%">0</b><span>top-3 accuracy</span><small>true best drug in the top three</small></div>
-          <div class="stat-cell"><b class="count" data-to="0.26" data-dec="2">0</b><span>rank correlation</span><small>predicted vs real IC50</small></div>
+          <div class="stat-cell"><b class="count" data-to="264">0</b><span>drugs ranked</span><small>named GDSC compounds</small></div>
+          <div class="stat-cell"><b class="count" data-to="30" data-suffix="%">0</b><span>top-10 accuracy</span><small>true best drug in the top ten</small></div>
+          <div class="stat-cell"><b class="count" data-to="0.31" data-dec="2">0</b><span>rank correlation</span><small>predicted vs real IC50</small></div>
         </div>
       </section>
 
@@ -327,7 +327,7 @@
             <div class="flow-ico" style="--c:#0ea5e9">🤖</div>
             <div>
               <h3>2 · Predict drug response</h3>
-              <p>Karkive frames this as <b>drug-response prediction</b>: for each of the <em>9</em> drugs, a gradient-boosted model is trained on the real cell lines that were screened against it, predicting how sensitive a profile is (from the drug's measured IC50 values). Modeling each drug on its own screened lines handles the fact that not every drug was tested on every line.</p>
+              <p>Karkive frames this as <b>drug-response prediction</b>: for each of the <em>264</em> drugs, a gradient-boosted model is trained on the real cell lines that were screened against it, predicting how sensitive a profile is (from the drug's measured IC50 values). Modeling each drug on its own screened lines handles the fact that not every drug was tested on every line.</p>
             </div>
           </article>
           <article class="flow-step">
@@ -396,36 +396,40 @@
 
       <section class="wrap">
         <h2 class="section-title">The therapy panel</h2>
-        <p class="section-sub">Nine GDSC compounds we can name authoritatively, spanning cytotoxic and targeted agents.</p>
+        <p class="section-sub">All <b>264</b> named GDSC compounds, spanning <b>24</b> target pathways — from broad cytotoxics to precisely targeted kinase inhibitors.</p>
         <div class="panel-cols">
           <div class="drug-col">
-            <h4 class="dc-title" style="--c:#6366f1">Cytotoxic / broad</h4>
+            <h4 class="dc-title" style="--c:#6366f1">Cytotoxic / DNA</h4>
             <div class="pills">
-              <span class="pill">Paclitaxel</span><span class="pill">MG-132</span>
+              <span class="pill">Cisplatin</span><span class="pill">Gemcitabine</span><span class="pill">Doxorubicin</span>
+              <span class="pill">Paclitaxel</span><span class="pill">Etoposide</span>
             </div>
           </div>
           <div class="drug-col">
-            <h4 class="dc-title" style="--c:#0ea5e9">Kinase / targeted</h4>
+            <h4 class="dc-title" style="--c:#0ea5e9">Kinase / RTK &amp; MAPK</h4>
             <div class="pills">
-              <span class="pill">Erlotinib</span><span class="pill">Sunitinib</span><span class="pill">Sorafenib</span>
-              <span class="pill">AZ628</span><span class="pill">PHA-665752</span><span class="pill">Rapamycin</span>
+              <span class="pill">Dabrafenib</span><span class="pill">PLX-4720</span><span class="pill">Crizotinib</span>
+              <span class="pill">Sorafenib</span><span class="pill">Sunitinib</span><span class="pill">Imatinib</span>
             </div>
           </div>
           <div class="drug-col">
-            <h4 class="dc-title" style="--c:#10b981">Pathway</h4>
-            <div class="pills"><span class="pill">Cyclopamine</span></div>
+            <h4 class="dc-title" style="--c:#10b981">EGFR / HER2 &amp; PI3K</h4>
+            <div class="pills">
+              <span class="pill">Gefitinib</span><span class="pill">Afatinib</span><span class="pill">Lapatinib</span>
+              <span class="pill">Rapamycin</span><span class="pill">Entinostat</span>
+            </div>
           </div>
         </div>
-        <p class="hint" style="text-align:center;margin-top:14px">The full GDSC screen covers 265 compounds; the bundled data only ships authoritative names for these, so the panel is deliberately limited to drugs we won't mislabel.</p>
+        <p class="hint" style="text-align:center;margin-top:14px">The GDSC screen covers 265 compounds; we name and model <b>264</b> of them from the public GDSC screened-compounds annotation, so every ranked drug carries an authoritative name and target pathway.</p>
       </section>
 
       <section class="wrap">
         <h2 class="section-title">Signal the model learns from the real data</h2>
         <p class="section-sub">These associations are measured directly in the GDSC cell lines (mutant vs wild-type IC50), not hand-written.</p>
         <div class="rules">
-          <div class="rule"><span class="biomark">BRAF mutation</span><span class="arrow">→</span><span class="drug ok">AZ628 sensitivity · p&lt;10⁻⁶</span></div>
-          <div class="rule"><span class="biomark">NRAS mutation</span><span class="arrow">→</span><span class="drug ok">AZ628 sensitivity · p&lt;10⁻⁶</span></div>
-          <div class="rule"><span class="biomark">BRAF mutation</span><span class="arrow">→</span><span class="drug ok">Sorafenib response</span></div>
+          <div class="rule"><span class="biomark">BRAF mutation</span><span class="arrow">→</span><span class="drug ok">BRAF inhibitors (Dabrafenib, PLX-4720) · p&lt;10⁻⁶</span></div>
+          <div class="rule"><span class="biomark">NRAS mutation</span><span class="arrow">→</span><span class="drug ok">MEK/BRAF-inhibitor sensitivity · p&lt;10⁻⁶</span></div>
+          <div class="rule"><span class="biomark">ERBB2 amplification</span><span class="arrow">→</span><span class="drug ok">HER2 inhibitors (Afatinib, CP724714)</span></div>
           <div class="rule"><span class="biomark">TP53 mutation</span><span class="arrow">→</span><span class="drug ok">shifts Paclitaxel response</span></div>
           <div class="rule"><span class="biomark">Tissue of origin</span><span class="arrow">→</span><span class="drug ok">strong baseline signal</span></div>
           <div class="rule"><span class="biomark">EGFR mutation</span><span class="arrow">⊣</span><span class="drug bad">weak in cell lines (few EGFR⁺)</span></div>
@@ -437,10 +441,10 @@
         <p class="section-sub">Honest numbers, held out on 20% of cell lines. Predicting drug response from a small biomarker panel is genuinely hard.</p>
         <div class="metric-grid">
           <div class="mcard"><b>988</b><span>Real cell lines</span></div>
-          <div class="mcard"><b>9</b><span>Drugs modeled</span></div>
-          <div class="mcard"><b>~58%</b><span>Top-3 accuracy</span></div>
-          <div class="mcard"><b>~28%</b><span>Top-1 accuracy</span></div>
-          <div class="mcard"><b>0.26</b><span>Mean rank correlation</span></div>
+          <div class="mcard"><b>264</b><span>Drugs modeled</span></div>
+          <div class="mcard"><b>~30%</b><span>Top-10 accuracy</span></div>
+          <div class="mcard"><b>0.72</b><span>Best-drug percentile</span></div>
+          <div class="mcard"><b>0.31</b><span>Mean rank correlation</span></div>
           <div class="mcard"><b>p&lt;10⁻⁶</b><span>BRAF→BRAF-inhibitor</span></div>
         </div>
       </section>
