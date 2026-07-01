@@ -1,26 +1,32 @@
 {
-  "n_test": 1800,
-  "n_therapies": 15,
-  "top1_accuracy": 0.8183,
-  "top3_accuracy": 0.9761,
-  "mean_r2": 0.8199,
-  "mean_spearman": 0.8931,
-  "per_drug_r2": {
-    "Cisplatin": 0.813,
-    "Carboplatin": 0.858,
-    "Paclitaxel": 0.799,
-    "Docetaxel": 0.685,
-    "Doxorubicin": 0.705,
-    "Gemcitabine": 0.777,
-    "Fluorouracil": 0.769,
-    "Irinotecan": 0.677,
-    "Olaparib": 0.904,
-    "Erlotinib": 0.915,
-    "Trastuzumab": 0.879,
-    "Vemurafenib": 0.911,
-    "Crizotinib": 0.836,
-    "Pembrolizumab": 0.917,
-    "Temozolomide": 0.852
+  "n_cell_lines": 988,
+  "n_drugs": 9,
+  "n_features": 42,
+  "mean_r2": 0.083,
+  "mean_spearman": 0.263,
+  "top1_accuracy": 0.278,
+  "top3_accuracy": 0.582,
+  "n_test_lines": 79,
+  "per_drug_spearman": {
+    "Erlotinib": -0.079,
+    "Rapamycin": 0.152,
+    "Sunitinib": 0.437,
+    "PHA-665752": 0.159,
+    "MG-132": 0.206,
+    "Paclitaxel": 0.024,
+    "Cyclopamine": 0.521,
+    "AZ628": 0.557,
+    "Sorafenib": 0.39
   },
-  "interval_coverage": 0.7554
+  "per_drug_r2": {
+    "Erlotinib": -0.032,
+    "Rapamycin": -0.012,
+    "Sunitinib": 0.178,
+    "PHA-665752": 0.053,
+    "MG-132": -0.01,
+    "Paclitaxel": -0.008,
+    "Cyclopamine": 0.2,
+    "AZ628": 0.285,
+    "Sorafenib": 0.091
+  }
 }

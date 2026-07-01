@@ -21,8 +21,9 @@ async function loadStats() {
     const set = (id, val) => { const el = $(id); if (el && val != null) el.textContent = val; };
     set("statTop1", m.top1_accuracy != null ? Math.round(m.top1_accuracy * 100) + "%" : null);
     set("statTop3", m.top3_accuracy != null ? Math.round(m.top3_accuracy * 100) + "%" : null);
-    set("statCov", m.interval_coverage != null ? Math.round(m.interval_coverage * 100) + "%" : null);
-    set("nTherapies", m.n_therapies || null);
+    set("statSpear", m.mean_spearman != null ? m.mean_spearman.toFixed(2) : null);
+    set("nTherapies", m.n_drugs || null);
+    set("nCellLines", m.n_cell_lines || null);
   } catch (_) { /* non-fatal */ }
 }
 loadStats();
@@ -160,46 +161,31 @@ document.querySelectorAll(".mode").forEach((btn) => {
 async function loadSchema() {
   try {
     const s = await (await fetch("/api/schema")).json();
-    $("m_cancer_type").innerHTML = s.cancer_types
+    $("m_tissue").innerHTML = s.tissues
       .map((c) => `<option value="${c.key}">${escapeHtml(c.label)}</option>`).join("");
     $("mutChecks").innerHTML = s.mutations.map((m) => `
       <label class="check"><input type="checkbox" data-key="${m.key}" />
         <span>${escapeHtml(m.label)}</span></label>`).join("");
-    $("contSliders").innerHTML = s.continuous.map((c) => `
-      <label class="slider">
-        <span class="slider-head">${escapeHtml(c.label)}
-          <b id="val_${c.key}">${c.default}</b></span>
-        <input type="range" data-key="${c.key}" min="${c.min}" max="${c.max}"
-               step="${c.step}" value="${c.default}"
-               oninput="document.getElementById('val_${c.key}').textContent = this.value" />
-      </label>`).join("");
+    $("extraChecks").innerHTML = s.extras.map((m) => `
+      <label class="check"><input type="checkbox" data-key="${m.key}" />
+        <span>${escapeHtml(m.label)}</span></label>`).join("");
     restoreFromUrl();   // form exists now; replay a shared case if present
   } catch (_) { /* manual mode just won't populate */ }
 }
 loadSchema();
 
 function collectManualSample() {
-  const out = { cancer_type: $("m_cancer_type").value };
-  document.querySelectorAll('#mutChecks input[type="checkbox"]').forEach((cb) => {
+  const out = { tissue: $("m_tissue").value };
+  document.querySelectorAll('#mutChecks input, #extraChecks input').forEach((cb) => {
     out[cb.dataset.key] = cb.checked ? 1 : 0;
-  });
-  document.querySelectorAll('#contSliders input[type="range"]').forEach((r) => {
-    out[r.dataset.key] = parseFloat(r.value);
   });
   return out;
 }
 
 function applyManualSample(s) {
-  if (s.cancer_type) $("m_cancer_type").value = s.cancer_type;
-  document.querySelectorAll('#mutChecks input[type="checkbox"]').forEach((cb) => {
+  if (s.tissue) $("m_tissue").value = s.tissue;
+  document.querySelectorAll('#mutChecks input, #extraChecks input').forEach((cb) => {
     cb.checked = Number(s[cb.dataset.key]) >= 0.5;
-  });
-  document.querySelectorAll('#contSliders input[type="range"]').forEach((r) => {
-    if (s[r.dataset.key] != null) {
-      r.value = s[r.dataset.key];
-      const lbl = $("val_" + r.dataset.key);
-      if (lbl) lbl.textContent = r.value;
-    }
   });
 }
 

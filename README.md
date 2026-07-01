@@ -1,132 +1,87 @@
-# Karkive — Tumor → Chemotherapy Matcher
+# Karkive — Tumor → Drug Matcher (real GDSC data)
 
-A web application that matches a tumor sample to its **most effective therapy**
-with as much precision as the model can muster. Upload a tumor profile and the
-model ranks a panel of 15 chemotherapies and targeted agents by predicted drug
-sensitivity, and explains the biomarkers behind each match.
+A web application that matches a tumor's genomic profile to the drug it is
+predicted to be most sensitive to, trained on **real GDSC (Genomics of Drug
+Sensitivity in Cancer) cell-line data**. Enter a profile (tissue, driver
+mutations, HER2 amplification, MSI) and the model ranks a panel of drugs by
+predicted sensitivity and shows the biomarkers behind each match.
 
-The single-page site is organized into four tabs — a content-rich **Home**
-(mission, why precision matching matters, animated stats), **How it works**
-(methodology), **The science** (therapy panel, biomarker rules, performance),
-and the **Matcher** tool — in a light theme with custom SVG graphics.
+The single-page site has four tabs — a content-rich **Home** (mission, vision,
+animated stats), **How it works** (methodology), **The science** (therapy panel,
+data-derived biomarker associations, honest performance), and the **Matcher**
+tool — in a light theme with custom graphics.
 
-> ⚠️ **Research / educational use only.** Karkive is a demonstration of
-> pharmacogenomic drug-response modeling. It is **not** a validated clinical
-> decision-support tool and must not be used to guide patient care.
-
----
-
-## What it does
-
-1. You upload a **single tumor sample** (CSV / TSV / JSON) describing its
-   genomic alterations and expression/clinical features.
-2. A trained **multi-output gradient-boosted model** predicts a sensitivity
-   score — with a **10–90% uncertainty interval** — for every therapy in the panel.
-3. The UI shows the **top match + confidence + decision margin**, the **full
-   ranking** with uncertainty bands, and a quantified breakdown of the
-   **supporting biomarkers** and **resistance cautions** behind the match.
-
-Three input modes:
-
-- **Single file** — upload one tumor (CSV/TSV/JSON), full ranked explanation with intervals.
-- **Manual entry** — fill in the tumor profile directly with dropdowns, toggles,
-  and sliders (no file needed); the form is generated from the model schema.
-- **Cohort (batch)** — upload one tumor per row, get a ranked recommendation
-  table for the whole cohort with **CSV export**.
-
-Any single result has a **Share this case** button that copies a link with the
-tumor profile encoded in the URL; opening it re-fills the form and reproduces
-the result (fully client-side, no stored data).
-
-### Model performance (held-out test set, 1,800 samples)
-
-| Metric | Value |
-| --- | --- |
-| Top-1 accuracy (recovers the single best therapy) | **~82%** |
-| Top-3 accuracy (best therapy in top 3) | **~98%** |
-| Mean per-drug R² | **~0.82** |
-| Mean per-sample Spearman rank correlation | **~0.89** |
-| 10–90% interval coverage | **~76%** |
-
-These numbers print when you train, and are surfaced live in the app header and
-at `GET /api/health`.
+> ⚠️ **Research / educational use only.** GDSC measures drug response in cultured
+> cancer **cell lines**, not patients. These signals are useful for research but
+> do **not** translate directly to patient outcomes. Not a clinical tool.
 
 ---
+
+## The data
+
+- **Source:** GDSC release 17, redistributed in the official Sanger `gdsctools`
+  package (BSD-3). Files live in [`data/gdsc/`](data/gdsc/).
+- **IC50 matrix:** 988 human cancer cell lines × 265 screened compounds
+  (natural-log IC50).
+- **Genomic features:** per cell line — tissue of origin, MSI status, driver-gene
+  mutation flags, and copy-number alterations (incl. ERBB2/HER2 amplification).
+- **Drug panel:** the 9 compounds the bundled data names authoritatively
+  (Erlotinib, Rapamycin, Sunitinib, PHA-665752, MG-132, Paclitaxel, Cyclopamine,
+  AZ628, Sorafenib). The full 265-drug name list requires the GDSC annotation
+  file from cancerrxgene.org; the panel is deliberately limited to drugs that can
+  be named without risk of mislabeling.
+- **Cite:** Iorio et al., *Cell* 2016; Yang et al., *Nucleic Acids Research* 2013.
 
 ## How the model works
 
-The matcher is framed as a **drug-response prediction** problem — the standard
-approach in pharmacogenomics. Rather than picking a single label, it predicts a
-continuous sensitivity score for *every* therapy and then ranks them, so you
-always get a full ordered recommendation list with margins.
+- Framed as **drug-response prediction**: for each drug, a
+  `HistGradientBoostingRegressor` is trained on the real cell lines screened
+  against it, predicting sensitivity `-z(logIC50)` (higher = more sensitive).
+  Drugs are modeled independently because the screen is sparse (not every drug
+  was tested on every line).
+- **Features (curated):** tissue (one-hot), MSI, ERBB2/HER2 amplification, and
+  13 driver-gene mutation flags (TP53, KRAS, EGFR, BRAF, ALK, ERBB2, BRCA1/2,
+  PIK3CA, PTEN, NRAS, APC, CDKN2A). A curated set beats the full 680-feature
+  matrix here (which overfits ~800 training lines).
+- **Ranking:** drugs are ordered by predicted sensitivity, shown as a percentile
+  ("more sensitive than X% of cell lines"), with an uncertainty band from
+  held-out residuals and a decision margin vs the runner-up.
+- **Explanations:** the recommended drug's supporting/caution factors are
+  computed by toggling each present feature and measuring the change in predicted
+  sensitivity — a data-driven attribution, not hand-written rules.
 
-- **Algorithm:** `MultiOutputRegressor` of `HistGradientBoostingRegressor`s over
-  a preprocessing pipeline (one-hot cancer type + passthrough genomics/expression).
-  A second pair of pipelines trained with the **pinball (quantile) loss** at
-  q=0.10 and q=0.90 produces a calibrated prediction interval per therapy.
-  Gradient-boosted trees capture the non-linear biomarker interactions and
-  resistance gradients well.
-- **Training data:** a biologically grounded synthetic cohort
-  (`model/generate_data.py`). Tumor samples are drawn with literature-inspired
-  per-cancer-type mutation prevalences; drug-sensitivity labels are produced
-  from well-established biomarker–drug rules in `model/biomarkers.py`
-  (e.g. *BRCA loss → PARP/platinum sensitivity*, *HER2 amplification →
-  trastuzumab*, *EGFR-activating mutation → EGFR-TKI*, *MSI-high/high TMB →
-  checkpoint inhibitor*, *ERCC1-high → platinum resistance*), plus realistic
-  assay noise.
-- **Explanations:** for each therapy the app computes a **quantified, signed
-  attribution** — the marginal effect (in sensitivity percentage points) of each
-  biomarker, measured by perturbing the rule model against a wild-type baseline.
-  Positive effects are surfaced as *supporting factors*, negative ones as
-  *resistance cautions* (e.g. ERCC1-high → reduced platinum benefit).
+### Performance (held-out 20% of cell lines)
 
-> Because the labels come from a rules-based simulator, the model is a faithful
-> *demonstration* of the matching workflow, not a clinically validated predictor.
-> To make it clinical-grade, swap `generate_data.py` for a real labeled cohort
-> (e.g. GDSC / DepMap / NCI-60 drug-response data) and re-run training — the rest
-> of the pipeline and UI stay the same.
+| Metric | Value |
+| --- | --- |
+| Top-3 accuracy (true best drug in top 3) | **~58%** |
+| Top-1 accuracy | **~28%** |
+| Mean per-drug Spearman (predicted vs real IC50) | **~0.26** |
+| Mean per-drug R² | **~0.08** |
 
----
+These are honest, modest numbers — predicting drug response from a small
+biomarker panel is genuinely hard. What matters is that the model **recovers real
+biology**: BRAF mutation → strong AZ628 (BRAF-inhibitor) sensitivity, measured
+directly in the data at **p < 10⁻⁶** (and NRAS mutation likewise, via the
+RAS/RAF pathway).
 
-## Tumor sample format
+## Input format
 
-One sample per file. Provide whatever you have — missing features are imputed to
-population defaults and flagged as warnings.
+One profile per file (or per row for a cohort). Recognized fields:
 
-**Wide CSV** (header row + one data row):
-
-```csv
-cancer_type,EGFR_mut,KRAS_mut,TP53_mut,TMB,proliferation
-lung_nsclc,1,0,1,5.0,0.45
-```
-
-**Key/value CSV:**
+- `tissue`: a GDSC tissue (e.g. `skin`, `lung_NSCLC`, `breast`, `large_intestine`,
+  `ovary`, `pancreas`, …). Friendly labels are also accepted.
+- `MSI`, `ERBB2_amp`: 0/1 (or yes/no).
+- `<GENE>_mut`: 0/1 for TP53, KRAS, EGFR, BRAF, ALK, ERBB2, BRCA1, BRCA2, PIK3CA,
+  PTEN, NRAS, APC, CDKN2A.
 
 ```csv
-feature,value
-cancer_type,ovarian
-BRCA1_mut,yes
+tissue,BRAF_mut,TP53_mut,MSI
+skin,1,1,0
 ```
 
-**JSON:**
-
-```json
-{ "cancer_type": "breast", "HER2_amp": 1, "ER_expr": 0.2 }
-```
-
-### Recognized fields
-
-- `cancer_type`: one of `breast, lung_nsclc, ovarian, colorectal, melanoma,
-  pancreatic, gastric, glioma`
-- Genomic flags (0/1 or yes/no): `TP53_mut, KRAS_mut, EGFR_mut, BRAF_V600,
-  ALK_fusion, HER2_amp, BRCA1_mut, BRCA2_mut, PIK3CA_mut, PTEN_loss, MSI_high`
-- Continuous (0–1 unless noted): `TMB` (mut/Mb, 0–40), `proliferation`,
-  `ER_expr`, `ABCB1_expr`, `ERCC1_expr`, `TUBB3_expr`
-
-Ready-made examples live in [`static/samples/`](static/samples/) and are
-downloadable from the app.
-
----
+Or JSON: `{ "tissue": "breast", "ERBB2_amp": 1, "TP53_mut": 1 }`. Examples live in
+[`static/samples/`](static/samples/) and download from the app.
 
 ## Run it
 
@@ -137,7 +92,7 @@ pip install -r requirements.txt
 uvicorn app:app --reload
 # open http://localhost:8000
 
-# (optional) retrain / re-evaluate, then commit the refreshed artifacts/
+# (optional) retrain on the GDSC data, then commit the refreshed artifacts/
 python -m model.train
 ```
 
@@ -146,58 +101,26 @@ python -m model.train
 - `GET  /` — the web UI
 - `GET  /api/health` — model status + metrics
 - `GET  /api/schema` — input-field schema (drives the manual-entry form)
-- `POST /api/predict` — multipart upload (`file=<sample>`) → ranked JSON with
-  intervals + per-feature attribution for one tumor
-- `POST /api/predict_form` — JSON body (`{feature: value, …}`) → same ranked JSON
-- `POST /api/predict_batch` — multipart upload (`file=<cohort>`) → ranked table
-  (one row per tumor)
-
-```bash
-curl -F "file=@static/samples/sample_egfr_lung.csv" http://localhost:8000/api/predict
-curl -F "file=@static/samples/sample_cohort.csv"   http://localhost:8000/api/predict_batch
-```
-
----
+- `POST /api/predict` — single sample file → ranked JSON with attribution
+- `POST /api/predict_form` — JSON body `{tissue, <feature>: value, …}` → ranked JSON
+- `POST /api/predict_batch` — cohort file (one tumor per row) → ranked table
 
 ## Deploy (public URL)
 
-The repo ships a portable **`Dockerfile`** that installs dependencies, **bakes the
-trained model into the image at build time** (so the live service boots fast), and
-serves on the host-provided `$PORT`. It runs as-is on Render, Railway, Fly.io,
-Google Cloud Run, or a Hugging Face Space (Docker SDK).
-
-**Render (one-click-ish):**
-
-1. Push this repo to GitHub (done).
-2. On [render.com](https://render.com) → **New → Blueprint**, connect the repo.
-   Render reads [`render.yaml`](render.yaml) and provisions a free web service.
-3. Wait for the build; your app is live at `https://<name>.onrender.com`.
-
-**Any Docker host / locally:**
-
-```bash
-docker build -t karkive .
-docker run -p 8000:8000 karkive      # open http://localhost:8000
-```
-
-> The free Render tier sleeps after inactivity, so the first request after idle
-> takes a few seconds to wake — the model itself is already baked in, so no
-> retraining happens at runtime.
-
----
+A portable `Dockerfile` installs dependencies and copies the committed model
+(no training at build or boot), serving on `$PORT`. A `render.yaml` blueprint
+provisions a free Render web service. See the Deploy section notes.
 
 ## Project layout
 
 ```
-app.py                 FastAPI server (UI + /api/predict + /api/predict_batch)
+app.py                 FastAPI server (UI + prediction endpoints)
+data/gdsc/             real GDSC release-17 matrices + provenance
 model/
-  biomarkers.py        feature schema, therapy panel, pharmacogenomic rules
-  generate_data.py     biologically grounded synthetic training cohort
-  train.py             trains + evaluates the model + quantile interval models
-  predict.py           parse upload → rank → intervals → attribution (single + batch)
-artifacts/
-  model.joblib         trained model bundle (committed; no training at build/boot)
-  metrics.json         held-out evaluation metrics
-templates/index.html   single-page UI (single + cohort modes)
-static/                style.css, app.js, sample files (incl. sample_cohort.csv)
+  gdsc.py              load GDSC data, curated feature + drug schema
+  train.py             trains per-drug models on real data, evaluates
+  predict.py           parse → rank → data-driven explanation (single + batch)
+artifacts/model.joblib trained per-drug models (committed; no training at boot)
+templates/index.html   single-page UI (Home / How / Science / Matcher)
+static/                style.css, app.js, sample files
 ```

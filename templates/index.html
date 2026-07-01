@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Karkive · Precision tumor-to-chemotherapy matching</title>
-  <meta name="description" content="Karkive reads a tumor's molecular fingerprint and ranks chemotherapies and targeted agents by predicted effectiveness, with calibrated confidence and the biomarkers behind every call." />
+  <meta name="description" content="Karkive learns from real GDSC cancer cell-line drug screens and ranks drugs by predicted sensitivity for a tumor's genomic profile, with the biomarkers behind every call." />
   <script>document.documentElement.className = "js";</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -36,12 +36,12 @@
     <section class="tab-section" data-pane="home">
       <div class="hero">
         <div class="hero-copy">
-          <span class="eyebrow">Precision oncology · research demonstration</span>
+          <span class="eyebrow">Precision oncology · trained on real GDSC data</span>
           <h1>The right therapy, matched to the <em>tumor</em>, not the average patient.</h1>
           <p class="lede">
-            Karkive reads a tumor's molecular fingerprint and ranks
-            <b id="nTherapies">15</b> chemotherapies and targeted agents by how well
-            each is predicted to work, with a calibrated confidence band and the
+            Karkive learns from <b id="nCellLines">988</b> real human cancer cell lines
+            in the GDSC drug-screening project, then reads a tumor's genomic profile and
+            ranks <b id="nTherapies">9</b> drugs by predicted sensitivity, with the
             biomarkers behind every recommendation.
           </p>
           <div class="hero-cta">
@@ -49,11 +49,11 @@
             <a class="btn ghost lg" data-tab="how" href="#how">See how it works</a>
           </div>
           <div class="hero-trust">
-            <span><b id="statTop1">82%</b> top-1 accuracy</span>
+            <span><b id="statTop3">58%</b> top-3 accuracy</span>
             <span class="dot-sep"></span>
-            <span><b id="statTop3">98%</b> top-3 accuracy</span>
+            <span><b id="statSpear">0.26</b> mean rank correlation</span>
             <span class="dot-sep"></span>
-            <span><b id="statCov">76%</b> interval coverage</span>
+            <span><b>real</b> cell-line data</span>
           </div>
         </div>
         <div class="hero-art">
@@ -62,24 +62,24 @@
           <!-- live-looking preview of what the matcher produces -->
           <div class="preview">
             <div class="pv-top">
-              <span class="pv-chip"><span class="pv-pulse"></span> tumor sample</span>
+              <span class="pv-chip"><span class="pv-pulse"></span> BRAF-mutant melanoma</span>
               <span class="pv-arrow">→</span>
-              <span class="pv-chip alt">ranked therapies</span>
+              <span class="pv-chip alt">ranked drugs</span>
             </div>
             <div class="pv-headline">
               <div>
                 <span class="pv-kicker">Top match</span>
-                <div class="pv-name">Olaparib</div>
-                <div class="pv-sub">PARP inhibitor · 84% sensitivity</div>
+                <div class="pv-name">AZ628</div>
+                <div class="pv-sub">BRAF inhibitor · 80th-pct sensitivity</div>
               </div>
-              <div class="pv-ring"><span>84%</span></div>
+              <div class="pv-ring"><span>80%</span></div>
             </div>
-            <div class="pv-meta"><span class="pv-margin">Decision margin · +11 pts over #2</span></div>
+            <div class="pv-meta"><span class="pv-margin">BRAF mutation · +38 pts</span></div>
             <ul class="pv-bars">
-              <li><span class="pv-drug">Olaparib</span><span class="pv-bar"><i style="--w:84%"></i></span><b>84%</b></li>
-              <li><span class="pv-drug">Carboplatin</span><span class="pv-bar"><i style="--w:73%"></i></span><b>73%</b></li>
-              <li><span class="pv-drug">Cisplatin</span><span class="pv-bar"><i style="--w:55%"></i></span><b>55%</b></li>
-              <li><span class="pv-drug">Paclitaxel</span><span class="pv-bar"><i style="--w:49%"></i></span><b>49%</b></li>
+              <li><span class="pv-drug">AZ628</span><span class="pv-bar"><i style="--w:80%"></i></span><b>80%</b></li>
+              <li><span class="pv-drug">Sorafenib</span><span class="pv-bar"><i style="--w:58%"></i></span><b>58%</b></li>
+              <li><span class="pv-drug">Paclitaxel</span><span class="pv-bar"><i style="--w:52%"></i></span><b>52%</b></li>
+              <li><span class="pv-drug">Erlotinib</span><span class="pv-bar"><i style="--w:44%"></i></span><b>44%</b></li>
             </ul>
           </div>
         </div>
@@ -235,10 +235,10 @@
       <!-- stats -->
       <section class="wrap">
         <div class="stat-band">
-          <div class="stat-cell"><b class="count" data-to="82" data-suffix="%">0</b><span>top-1 accuracy</span><small>recovers the single best therapy</small></div>
-          <div class="stat-cell"><b class="count" data-to="98" data-suffix="%">0</b><span>top-3 accuracy</span><small>best therapy in the top three</small></div>
-          <div class="stat-cell"><b class="count" data-to="15">0</b><span>therapies ranked</span><small>cytotoxic, targeted &amp; immuno</small></div>
-          <div class="stat-cell"><b class="count" data-to="0.82" data-dec="2">0</b><span>mean R²</span><small>per-drug sensitivity fit</small></div>
+          <div class="stat-cell"><b class="count" data-to="988">0</b><span>cancer cell lines</span><small>real GDSC drug screens</small></div>
+          <div class="stat-cell"><b class="count" data-to="9">0</b><span>drugs ranked</span><small>named GDSC compounds</small></div>
+          <div class="stat-cell"><b class="count" data-to="58" data-suffix="%">0</b><span>top-3 accuracy</span><small>true best drug in the top three</small></div>
+          <div class="stat-cell"><b class="count" data-to="0.26" data-dec="2">0</b><span>rank correlation</span><small>predicted vs real IC50</small></div>
         </div>
       </section>
 
@@ -246,7 +246,7 @@
       <section class="wrap">
         <h2 class="section-title">From sample to shortlist, in four steps</h2>
         <div class="pipeline">
-          <div class="pstep"><span class="pnum">1</span><span class="pico">🧪</span><h4>Profile</h4><p>Genomic alterations + expression describe the tumor.</p></div>
+          <div class="pstep"><span class="pnum">1</span><span class="pico">🧪</span><h4>Profile</h4><p>Driver mutations, tissue and MSI describe the tumor.</p></div>
           <div class="parrow">→</div>
           <div class="pstep"><span class="pnum">2</span><span class="pico">🤖</span><h4>Predict</h4><p>The model scores every therapy's sensitivity.</p></div>
           <div class="parrow">→</div>
@@ -300,21 +300,21 @@
             <div class="flow-ico" style="--c:#6366f1">🧪</div>
             <div>
               <h3>1 · Profile the tumor</h3>
-              <p>A sample is described by what actually drives cancer biology: <b>genomic alterations</b> (TP53, KRAS, EGFR, HER2 amplification, BRCA loss, ALK fusion, MSI status…) and <b>expression / clinical signals</b> (tumor mutational burden, proliferation, drug-resistance markers like ERCC1 and ABCB1). Missing values are imputed to population priors and flagged.</p>
+              <p>A sample is described by the features GDSC records for every cell line: <b>driver-gene mutations</b> (TP53, KRAS, EGFR, BRAF, ALK, ERBB2, BRCA1/2, PIK3CA, PTEN, NRAS, APC, CDKN2A), <b>ERBB2/HER2 amplification</b>, <b>MSI status</b>, and the <b>tissue of origin</b>. Anything you leave out is treated as not-present and flagged.</p>
             </div>
           </article>
           <article class="flow-step">
             <div class="flow-ico" style="--c:#0ea5e9">🤖</div>
             <div>
               <h3>2 · Predict drug response</h3>
-              <p>Rather than guessing one label, Karkive frames the task as <b>drug-response prediction</b>: a multi-output gradient-boosted model estimates a sensitivity score for <em>all 15</em> therapies at once. Gradient-boosted trees handle the messy, non-linear interactions between biomarkers and resistance gradients that linear models miss.</p>
+              <p>Karkive frames this as <b>drug-response prediction</b>: for each of the <em>9</em> drugs, a gradient-boosted model is trained on the real cell lines that were screened against it, predicting how sensitive a profile is (from the drug's measured IC50 values). Modeling each drug on its own screened lines handles the fact that not every drug was tested on every line.</p>
             </div>
           </article>
           <article class="flow-step">
             <div class="flow-ico" style="--c:#10b981">📊</div>
             <div>
               <h3>3 · Rank with calibrated uncertainty</h3>
-              <p>Therapies are ordered by predicted sensitivity, and a second pair of <b>quantile models</b> (10th / 90th percentile) draws an honest interval around each estimate. A <b>decision margin</b> tells you how clearly the top pick beats the runner-up. A wide margin is a confident call; a narrow one says “these are close.”</p>
+              <p>Drugs are ranked by predicted sensitivity, shown as a <b>percentile</b> ("more sensitive than X% of cell lines"), with an uncertainty band from the model's held-out residuals. A <b>decision margin</b> tells you how clearly the top pick beats the runner-up. A wide margin is a confident call; a narrow one says “these are close.”</p>
             </div>
           </article>
           <article class="flow-step">
@@ -331,16 +331,16 @@
         <h2 class="section-title">Three ways to ask</h2>
         <div class="cards-3">
           <article class="feature"><span class="feat-ico" style="--c:#6366f1">📄</span><h3>Upload a file</h3><p>Drop a single tumor as CSV, TSV, or JSON. Wide, key-value, or one-record formats all parse.</p></article>
-          <article class="feature"><span class="feat-ico" style="--c:#0ea5e9">🎛️</span><h3>Fill in a form</h3><p>No file? Toggle alterations and slide expression levels; the form is generated from the model's own schema.</p></article>
+          <article class="feature"><span class="feat-ico" style="--c:#0ea5e9">🎛️</span><h3>Fill in a form</h3><p>No file? Pick a tissue and toggle the mutations and markers; the form is generated from the model's own schema.</p></article>
           <article class="feature"><span class="feat-ico" style="--c:#10b981">📋</span><h3>Score a cohort</h3><p>Upload one tumor per row and get a ranked recommendation table for the whole group, exportable to CSV.</p></article>
         </div>
       </section>
 
       <div class="band note alt">
-        <strong>An honest footnote.</strong> Because Karkive learns from a biologically grounded
-        <em>synthetic</em> cohort, it's a faithful demonstration of the matching workflow, not a clinically
-        validated predictor. Swap in a real labeled dataset (GDSC, DepMap, NCI-60) and the same pipeline becomes
-        the starting point for a clinical-grade tool.
+        <strong>An honest footnote.</strong> Karkive learns from real GDSC data, but from cancer
+        <em>cell lines</em>, not patients, and from a limited biomarker panel. It recovers real biology
+        (see the science page) yet its accuracy is modest, exactly what you'd expect when predicting drug
+        response from a handful of markers. It demonstrates the workflow; it is not a clinical predictor.
       </div>
       <div class="center"><a class="btn primary lg" data-tab="science" href="#science">Explore the science →</a></div>
     </section>
@@ -376,62 +376,59 @@
 
       <section class="wrap">
         <h2 class="section-title">The therapy panel</h2>
-        <p class="section-sub">Fifteen agents spanning three modern treatment classes.</p>
+        <p class="section-sub">Nine GDSC compounds we can name authoritatively, spanning cytotoxic and targeted agents.</p>
         <div class="panel-cols">
           <div class="drug-col">
-            <h4 class="dc-title" style="--c:#6366f1">Cytotoxic chemotherapy</h4>
+            <h4 class="dc-title" style="--c:#6366f1">Cytotoxic / broad</h4>
             <div class="pills">
-              <span class="pill">Cisplatin</span><span class="pill">Carboplatin</span><span class="pill">Paclitaxel</span>
-              <span class="pill">Docetaxel</span><span class="pill">Doxorubicin</span><span class="pill">Gemcitabine</span>
-              <span class="pill">Fluorouracil</span><span class="pill">Irinotecan</span><span class="pill">Temozolomide</span>
+              <span class="pill">Paclitaxel</span><span class="pill">MG-132</span>
             </div>
           </div>
           <div class="drug-col">
-            <h4 class="dc-title" style="--c:#0ea5e9">Targeted therapy</h4>
+            <h4 class="dc-title" style="--c:#0ea5e9">Kinase / targeted</h4>
             <div class="pills">
-              <span class="pill">Olaparib</span><span class="pill">Erlotinib</span><span class="pill">Trastuzumab</span>
-              <span class="pill">Vemurafenib</span><span class="pill">Crizotinib</span>
+              <span class="pill">Erlotinib</span><span class="pill">Sunitinib</span><span class="pill">Sorafenib</span>
+              <span class="pill">AZ628</span><span class="pill">PHA-665752</span><span class="pill">Rapamycin</span>
             </div>
           </div>
           <div class="drug-col">
-            <h4 class="dc-title" style="--c:#10b981">Immunotherapy</h4>
-            <div class="pills"><span class="pill">Pembrolizumab</span></div>
+            <h4 class="dc-title" style="--c:#10b981">Pathway</h4>
+            <div class="pills"><span class="pill">Cyclopamine</span></div>
           </div>
         </div>
+        <p class="hint" style="text-align:center;margin-top:14px">The full GDSC screen covers 265 compounds; the bundled data only ships authoritative names for these, so the panel is deliberately limited to drugs we won't mislabel.</p>
       </section>
 
       <section class="wrap">
-        <h2 class="section-title">Biomarkers that drive the match</h2>
-        <p class="section-sub">The model is trained on cohorts built from established, textbook biomarker–drug relationships.</p>
+        <h2 class="section-title">Signal the model learns from the real data</h2>
+        <p class="section-sub">These associations are measured directly in the GDSC cell lines (mutant vs wild-type IC50), not hand-written.</p>
         <div class="rules">
-          <div class="rule"><span class="biomark">HER2 amplification</span><span class="arrow">→</span><span class="drug ok">Trastuzumab</span></div>
-          <div class="rule"><span class="biomark">EGFR mutation</span><span class="arrow">→</span><span class="drug ok">Erlotinib</span></div>
-          <div class="rule"><span class="biomark">BRCA1/2 loss</span><span class="arrow">→</span><span class="drug ok">Olaparib · platinum</span></div>
-          <div class="rule"><span class="biomark">BRAF V600</span><span class="arrow">→</span><span class="drug ok">Vemurafenib</span></div>
-          <div class="rule"><span class="biomark">ALK fusion</span><span class="arrow">→</span><span class="drug ok">Crizotinib</span></div>
-          <div class="rule"><span class="biomark">MSI-high / high TMB</span><span class="arrow">→</span><span class="drug ok">Pembrolizumab</span></div>
-          <div class="rule"><span class="biomark">ERCC1 high</span><span class="arrow">⊣</span><span class="drug bad">platinum resistance</span></div>
-          <div class="rule"><span class="biomark">KRAS mutation</span><span class="arrow">⊣</span><span class="drug bad">EGFR-TKI resistance</span></div>
+          <div class="rule"><span class="biomark">BRAF mutation</span><span class="arrow">→</span><span class="drug ok">AZ628 sensitivity · p&lt;10⁻⁶</span></div>
+          <div class="rule"><span class="biomark">NRAS mutation</span><span class="arrow">→</span><span class="drug ok">AZ628 sensitivity · p&lt;10⁻⁶</span></div>
+          <div class="rule"><span class="biomark">BRAF mutation</span><span class="arrow">→</span><span class="drug ok">Sorafenib response</span></div>
+          <div class="rule"><span class="biomark">TP53 mutation</span><span class="arrow">→</span><span class="drug ok">shifts Paclitaxel response</span></div>
+          <div class="rule"><span class="biomark">Tissue of origin</span><span class="arrow">→</span><span class="drug ok">strong baseline signal</span></div>
+          <div class="rule"><span class="biomark">EGFR mutation</span><span class="arrow">⊣</span><span class="drug bad">weak in cell lines (few EGFR⁺)</span></div>
         </div>
       </section>
 
       <section class="wrap">
         <h2 class="section-title">How well does it do?</h2>
-        <p class="section-sub">Held-out test set of 1,800 simulated tumors.</p>
+        <p class="section-sub">Honest numbers, held out on 20% of cell lines. Predicting drug response from a small biomarker panel is genuinely hard.</p>
         <div class="metric-grid">
-          <div class="mcard"><b>~82%</b><span>Top-1 accuracy</span></div>
-          <div class="mcard"><b>~98%</b><span>Top-3 accuracy</span></div>
-          <div class="mcard"><b>0.82</b><span>Mean per-drug R²</span></div>
-          <div class="mcard"><b>0.89</b><span>Mean rank correlation</span></div>
-          <div class="mcard"><b>~76%</b><span>10–90% interval coverage</span></div>
-          <div class="mcard"><b>9,000</b><span>Training tumors</span></div>
+          <div class="mcard"><b>988</b><span>Real cell lines</span></div>
+          <div class="mcard"><b>9</b><span>Drugs modeled</span></div>
+          <div class="mcard"><b>~58%</b><span>Top-3 accuracy</span></div>
+          <div class="mcard"><b>~28%</b><span>Top-1 accuracy</span></div>
+          <div class="mcard"><b>0.26</b><span>Mean rank correlation</span></div>
+          <div class="mcard"><b>p&lt;10⁻⁶</b><span>BRAF→BRAF-inhibitor</span></div>
         </div>
       </section>
 
       <div class="band note">
-        <strong>From demo to clinical-grade.</strong> The labels here come from a rules-based simulator, so the
-        model demonstrates the workflow rather than diagnosing real patients. The architecture, UI, and explanations
-        are exactly what you'd keep when retraining on real pharmacogenomic data.
+        <strong>Cell lines, not patients.</strong> GDSC measures drug response in cultured cancer cell lines.
+        Those signals are real and useful for research, but they do not translate directly to patient outcomes.
+        Data: GDSC release 17 (Iorio et al., <em>Cell</em> 2016; Yang et al., <em>NAR</em> 2013).
       </div>
       <div class="center"><a class="btn primary lg" data-tab="matcher" href="#matcher">Open the matcher →</a></div>
     </section>
@@ -465,16 +462,16 @@
 
             <div class="manual-panel" id="manualPanel" hidden>
               <label class="field">
-                <span class="field-label">Cancer type</span>
-                <select id="m_cancer_type"></select>
+                <span class="field-label">Tissue / cancer type</span>
+                <select id="m_tissue"></select>
               </label>
               <div class="field-group">
-                <span class="group-title">Genomic alterations <small>(toggle any present)</small></span>
+                <span class="group-title">Driver mutations <small>(toggle any present)</small></span>
                 <div class="checks" id="mutChecks"></div>
               </div>
               <div class="field-group">
-                <span class="group-title">Expression &amp; clinical</span>
-                <div class="sliders" id="contSliders"></div>
+                <span class="group-title">Other markers</span>
+                <div class="checks" id="extraChecks"></div>
               </div>
             </div>
 
@@ -484,10 +481,10 @@
           <div class="samples">
             <p id="samplesLabel">No sample handy? Try one:</p>
             <div class="sample-chips" id="singleChips">
-              <a class="chip" href="/static/samples/sample_brca_ovarian.csv" download>BRCA⁺ ovarian</a>
+              <a class="chip" href="/static/samples/sample_braf_melanoma.csv" download>BRAF⁺ melanoma</a>
               <a class="chip" href="/static/samples/sample_egfr_lung.csv" download>EGFR⁺ lung</a>
               <a class="chip" href="/static/samples/sample_her2_breast.json" download>HER2⁺ breast</a>
-              <a class="chip" href="/static/samples/sample_msi_colorectal.csv" download>MSI-high colorectal</a>
+              <a class="chip" href="/static/samples/sample_nras_colorectal.csv" download>NRAS⁺ colorectal</a>
             </div>
             <div class="sample-chips" id="batchChips" hidden>
               <a class="chip" href="/static/samples/sample_cohort.csv" download>Example 8-patient cohort</a>
@@ -534,7 +531,7 @@
               </div>
             </div>
 
-            <h4 class="rank-title">Full ranking <small>(point estimate · 10–90% interval)</small></h4>
+            <h4 class="rank-title">Full ranking <small>(sensitivity percentile · uncertainty band)</small></h4>
             <ul class="ranking" id="ranking"></ul>
 
             <details class="parsed">
@@ -574,7 +571,7 @@
   <footer>
     <div class="foot-inner">
       <span class="foot-brand"><span class="brand-mark">◈</span> Karkive</span>
-      <span>Gradient-boosted multi-output drug-response model with quantile uncertainty</span>
+      <span>Per-drug gradient-boosted models trained on real GDSC cell-line drug response</span>
       <a href="/api/health" target="_blank" rel="noopener">model status</a>
     </div>
   </footer>

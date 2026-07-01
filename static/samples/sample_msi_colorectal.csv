@@ -1,2 +1,0 @@
-cancer_type,MSI_high,TP53_mut,KRAS_mut,BRAF_V600,EGFR_mut,ALK_fusion,HER2_amp,BRCA1_mut,BRCA2_mut,PIK3CA_mut,PTEN_loss,TMB,proliferation,ER_expr,ABCB1_expr,ERCC1_expr,TUBB3_expr
-colorectal,1,0,0,1,0,0,0,0,0,1,0,34.0,0.55,0.0,0.2,0.3,0.3
