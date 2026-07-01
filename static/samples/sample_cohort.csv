@@ -1,9 +1,7 @@
-cancer_type,TP53_mut,KRAS_mut,EGFR_mut,BRAF_V600,ALK_fusion,HER2_amp,BRCA1_mut,BRCA2_mut,PIK3CA_mut,PTEN_loss,MSI_high,TMB,proliferation,ER_expr,ABCB1_expr,ERCC1_expr,TUBB3_expr
-lung_nsclc,1,0,1,0,0,0,0,0,0,0,0,5.0,0.45,0.0,0.2,0.35,0.3
-breast,1,0,0,0,0,1,0,0,1,0,0,6.0,0.7,0.2,0.25,0.3,0.25
-ovarian,1,0,0,0,0,0,1,0,0,0,0,7.5,0.6,0.1,0.2,0.2,0.3
-melanoma,0,0,0,1,0,0,0,0,0,0,0,12.0,0.5,0.0,0.3,0.3,0.3
-colorectal,0,0,0,0,0,0,0,0,1,0,1,34.0,0.55,0.0,0.2,0.3,0.3
-pancreatic,1,1,0,0,0,0,0,1,0,0,0,4.0,0.5,0.0,0.2,0.35,0.3
-lung_nsclc,1,0,0,0,1,0,0,0,0,0,0,6.0,0.5,0.0,0.2,0.35,0.3
-gastric,1,0,0,0,0,1,0,0,0,0,0,8.0,0.6,0.0,0.2,0.3,0.3
+tissue,TP53_mut,KRAS_mut,EGFR_mut,BRAF_mut,NRAS_mut,ERBB2_amp,PIK3CA_mut,APC_mut,MSI
+skin,1,0,0,1,0,0,0,0,0
+lung_NSCLC,1,0,1,0,0,0,0,0,0
+large_intestine,1,0,0,0,1,0,1,1,0
+breast,1,0,0,0,0,1,1,0,0
+pancreas,1,1,0,0,0,0,0,0,0
+ovary,1,0,0,0,0,0,1,0,0
