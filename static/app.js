@@ -29,7 +29,7 @@ async function loadStats() {
 loadStats();
 
 /* ---- tab navigation ---- */
-const TABS = ["home", "how", "science", "matcher"];
+const TABS = ["home", "how", "science", "matcher", "about"];
 function showTab(name) {
   if (!TABS.includes(name)) name = "home";
   document.querySelectorAll(".tab-section").forEach((s) => { s.hidden = s.dataset.pane !== name; });
@@ -75,7 +75,8 @@ function animateCounters() {
 /* ---- scroll-reveal ---- */
 (function setupReveal() {
   const sel = ".feature, .flow-step, .stat-cell, .pstep, .rule, .mcard, .drug-col, " +
-              ".vision-card, .match-figure, .band.mission, .pipeline, .preview";
+              ".vision-card, .match-figure, .band.mission, .pipeline, .preview, " +
+              ".section-title, .about-h, .page-head h1, .hl";
   const els = document.querySelectorAll(sel);
   if (!("IntersectionObserver" in window)) {
     els.forEach((el) => el.classList.add("in"));
@@ -150,10 +151,10 @@ document.querySelectorAll(".mode").forEach((btn) => {
     $("results").hidden = true; $("batchResults").hidden = true; $("errorBox").hidden = true;
     $("placeholder").hidden = false;
     $("placeholder").innerHTML = batch
-      ? `<span aria-hidden="true">📋</span><p>Upload a cohort to rank every patient.</p>`
+      ? `<span aria-hidden="true"><svg class="ico"><use href="#ic-table"/></svg></span><p>Upload a cohort to rank every patient.</p>`
       : manual
-      ? `<span aria-hidden="true">🧬</span><p>Fill in the profile and match a therapy.</p>`
-      : `<span aria-hidden="true">🧬</span><p>Upload a sample to see the ranked match.</p>`;
+      ? `<span aria-hidden="true"><svg class="ico"><use href="#ic-sliders"/></svg></span><p>Fill in the profile and match a therapy.</p>`
+      : `<span aria-hidden="true"><svg class="ico"><use href="#ic-dna"/></svg></span><p>Upload a sample to see the ranked match.</p>`;
   });
 });
 
@@ -496,4 +497,38 @@ document.querySelectorAll(".chip.run").forEach((a) => {
     if (cx < -900) { cx = tx; cy = ty; }        // avoid a swoop from the corner on first move
     if (!raf) raf = requestAnimationFrame(tick);
   }, { passive: true });
+})();
+
+/* ---- AI diagram: auto-cycle lane highlighting until the user hovers ---- */
+(function diagramCycle() {
+  const dia = document.getElementById("matchDia");
+  if (!dia) return;
+  const lanes = Array.from(dia.querySelectorAll(".lane"));
+  if (!lanes.length) return;
+  let i = 0, timer = null, paused = false;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function step() {
+    if (paused) return;
+    lanes.forEach((l, k) => l.classList.toggle("active", k === i));
+    i = (i + 1) % lanes.length;
+  }
+  function start() {
+    if (reduce || timer) return;
+    dia.classList.add("cycling");
+    step(); timer = setInterval(step, 1600);
+  }
+  function stop() {
+    dia.classList.remove("cycling");
+    lanes.forEach((l) => l.classList.remove("active"));
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+  // pause the auto-tour while the user explores by hand
+  dia.addEventListener("mouseenter", () => { paused = true; stop(); });
+  dia.addEventListener("mouseleave", () => { paused = false; start(); });
+  // only run the tour while the diagram is on screen
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver((es) => {
+      es.forEach((e) => { if (e.isIntersecting && !paused) start(); else if (!e.isIntersecting) stop(); });
+    }, { threshold: 0.3 }).observe(dia);
+  } else { start(); }
 })();

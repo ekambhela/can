@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Karkive · Precision tumor-to-chemotherapy matching</title>
   <meta name="description" content="Karkive learns from real GDSC cancer cell-line drug screens and ranks drugs by predicted sensitivity for a tumor's genomic profile, with the biomarkers behind every call." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23efe6d2'/%3E%3Cg fill='none' stroke='%23e0141d' stroke-width='2.2'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='1.4' fill='%23e0141d'/%3E%3C/svg%3E" />
   <script>document.documentElement.className = "js";</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,6 +15,27 @@
 <body>
   <!-- interactive halftone spotlight that follows the cursor -->
   <div id="halftone" aria-hidden="true"></div>
+
+  <!-- ============ ICON SPRITE (custom line-art, replaces stock emoji) ============ -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+    <symbol id="ic-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 1.5v3.5M12 19v3.5M1.5 12H5M19 12h3.5"/></symbol>
+    <symbol id="ic-dna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3c0 4 8 5 8 9s-8 5-8 9"/><path d="M16 3c0 4-8 5-8 9s8 5 8 9"/><path d="M9.2 6.5h5.6M8.3 12h7.4M9.2 17.5h5.6" stroke-width="1.5"/></symbol>
+    <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9 0-3 5-4 5-9M7 21c0-5 5-6 5-9 0 3 5 4 5 9"/></symbol>
+    <symbol id="ic-lens" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-5.2-5.2"/></symbol>
+    <symbol id="ic-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.2l-4.6 8.3A2 2 0 0 0 7.2 21h9.6a2 2 0 0 0 1.8-3.5L14 9.2V3"/><path d="M7.6 15.5h8.8" stroke-width="1.5"/></symbol>
+    <symbol id="ic-ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="6.5" width="11" height="11" rx="2.5"/><circle cx="12" cy="12" r="2.4"/><path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3"/></symbol>
+    <symbol id="ic-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-6M12 20V7M17 20v-9"/></symbol>
+    <symbol id="ic-bulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.8 10.7c.8.7 1.3 1.4 1.3 2.3h5c0-.9.5-1.6 1.3-2.3A6 6 0 0 0 12 3z"/></symbol>
+    <symbol id="ic-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h6" stroke-width="1.5"/></symbol>
+    <symbol id="ic-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h9M18.5 8H20M4 16h4.5M14 16h6"/><circle cx="15.5" cy="8" r="2.3"/><circle cx="10.5" cy="16" r="2.3"/></symbol>
+    <symbol id="ic-table" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="1.8"/><path d="M4 10h16M4 14.5h16M9.5 5v14M14.5 5v14" stroke-width="1.4"/></symbol>
+    <symbol id="ic-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10M8 11l4 4 4-4M5 19h14"/></symbol>
+    <symbol id="ic-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5l5-5"/><path d="M10.5 6.5l1.6-1.6a4 4 0 0 1 5.7 5.7l-2 2"/><path d="M13.5 17.5l-1.6 1.6a4 4 0 0 1-5.7-5.7l2-2"/></symbol>
+    <symbol id="ic-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S3 15 3 8.8A4.8 4.8 0 0 1 12 6a4.8 4.8 0 0 1 9 2.8C21 15 12 20.5 12 20.5z"/></symbol>
+    <symbol id="ic-cap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l10 4.5-10 4.5L2 8.5 12 4z"/><path d="M6 10.7V15c0 1.6 2.7 3 6 3s6-1.4 6-3v-4.3"/><path d="M22 8.5V14"/></symbol>
+    <symbol id="ic-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+    <symbol id="ic-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z"/></symbol>
+  </defs></svg>
   <!-- scroll progress bar -->
   <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
   <!-- side spine: a line + dot that travels with the page scroll -->
@@ -22,13 +44,14 @@
   <!-- ============ NAV ============ -->
   <header class="nav">
     <a class="brand" data-tab="home" href="#home">
-      <span class="brand-mark" aria-hidden="true">◈</span> Karkive
+      <span class="brand-mark" aria-hidden="true"><svg class="mark-ico"><use href="#ic-mark"/></svg></span> Karkive
     </a>
     <nav class="navlinks" aria-label="Primary">
       <a class="navlink active" data-tab="home" href="#home">Home</a>
       <a class="navlink" data-tab="how" href="#how">How it works</a>
       <a class="navlink" data-tab="science" href="#science">The science</a>
       <a class="navlink" data-tab="matcher" href="#matcher">Matcher</a>
+      <a class="navlink" data-tab="about" href="#about">About</a>
     </nav>
     <a class="nav-cta" data-tab="matcher" href="#matcher">Try the matcher →</a>
   </header>
@@ -43,8 +66,8 @@
           <p class="lede">
             Karkive learns from <b id="nCellLines">988</b> real human cancer cell lines
             in the GDSC drug-screening project, then reads a tumor's genomic profile and
-            ranks <b id="nTherapies">248</b> drugs by predicted sensitivity, with the
-            biomarkers behind every recommendation.
+            ranks <b id="nTherapies">248</b> drugs by predicted sensitivity, with
+            <span class="hl">the biomarkers behind every recommendation</span>.
           </p>
           <div class="hero-cta">
             <a class="btn primary lg" data-tab="matcher" href="#matcher">Try the matcher →</a>
@@ -187,47 +210,74 @@
           </article>
         </div>
 
-        <!-- animated matching diagram -->
+        <!-- animated, interactive matching diagram (hover a tumor to trace its match) -->
         <figure class="match-figure">
-          <svg class="match-dia" viewBox="0 0 880 330" xmlns="http://www.w3.org/2000/svg" role="img"
-               aria-label="Unique tumor samples flow through Karkive's AI and are matched to the best therapy for each.">
-            <!-- full sample-to-therapy routes (also serve as motion paths) -->
-            <g class="routes" fill="none" stroke-width="2.6" stroke-linecap="round">
-              <path id="rt1" class="rt" style="--c:#6366f1" d="M70,90  C250,90  330,165 450,165 C580,165 560,95  690,95"/>
-              <path id="rt2" class="rt" style="--c:#0ea5e9" d="M70,165 C260,165 340,165 450,165 C560,165 560,165 690,165"/>
-              <path id="rt3" class="rt" style="--c:#ec4899" d="M70,240 C250,240 330,165 450,165 C580,165 560,235 690,235"/>
+          <svg class="match-dia" id="matchDia" viewBox="0 0 1000 540" xmlns="http://www.w3.org/2000/svg" role="img"
+               aria-label="Five tumor samples flow through Karkive's AI and are each matched to the drug they respond to best: BRAF melanoma to Dabrafenib, EGFR lung to Gefitinib, HER2 breast to Afatinib, KRAS colorectal to Trametinib, BRCA ovarian to Olaparib.">
+            <!-- column headers -->
+            <text class="dia-lab head" x="120" y="34" text-anchor="middle">TUMOR SAMPLES</text>
+            <text class="dia-lab head" x="500" y="34" text-anchor="middle">KARKIVE AI</text>
+            <text class="dia-lab head" x="875" y="34" text-anchor="middle">BEST MATCH</text>
+
+            <g class="lanes" fill="none">
+              <!-- lane 0 · BRAF melanoma -> Dabrafenib -->
+              <g class="lane" data-lane="0" style="--c:#e0141d">
+                <path id="rt0" class="rt" d="M150,90 C330,90 380,270 500,270 C620,270 640,90 770,90"/>
+                <circle class="pulse" r="6"><animateMotion dur="3s" begin="0s" repeatCount="indefinite" rotate="auto"><mpath href="#rt0"/></animateMotion></circle>
+                <circle class="nd" cx="120" cy="90" r="30"/>
+                <text class="nd-tag" x="120" y="95" text-anchor="middle">BRAF</text>
+                <text class="nd-sub" x="120" y="140" text-anchor="middle">Melanoma</text>
+                <g class="rx"><rect class="rxn" x="770" y="70" width="200" height="40" rx="6"/><text class="rxt" x="870" y="95" text-anchor="middle">Dabrafenib</text></g>
+              </g>
+              <!-- lane 1 · EGFR lung -> Gefitinib -->
+              <g class="lane" data-lane="1" style="--c:#1257c4">
+                <path id="rt1" class="rt" d="M150,180 C330,180 390,270 500,270 C610,270 640,180 770,180"/>
+                <circle class="pulse" r="6"><animateMotion dur="3s" begin="0.6s" repeatCount="indefinite" rotate="auto"><mpath href="#rt1"/></animateMotion></circle>
+                <circle class="nd" cx="120" cy="180" r="30"/>
+                <text class="nd-tag" x="120" y="185" text-anchor="middle">EGFR</text>
+                <text class="nd-sub" x="120" y="230" text-anchor="middle">Lung (NSCLC)</text>
+                <g class="rx"><rect class="rxn" x="770" y="160" width="200" height="40" rx="6"/><text class="rxt" x="870" y="185" text-anchor="middle">Gefitinib</text></g>
+              </g>
+              <!-- lane 2 · HER2 breast -> Afatinib -->
+              <g class="lane" data-lane="2" style="--c:#d81b73">
+                <path id="rt2" class="rt" d="M150,270 C340,270 400,270 500,270 C600,270 660,270 770,270"/>
+                <circle class="pulse" r="6"><animateMotion dur="3s" begin="1.2s" repeatCount="indefinite" rotate="auto"><mpath href="#rt2"/></animateMotion></circle>
+                <circle class="nd" cx="120" cy="270" r="30"/>
+                <text class="nd-tag" x="120" y="275" text-anchor="middle">HER2</text>
+                <text class="nd-sub" x="120" y="320" text-anchor="middle">Breast</text>
+                <g class="rx"><rect class="rxn" x="770" y="250" width="200" height="40" rx="6"/><text class="rxt" x="870" y="275" text-anchor="middle">Afatinib</text></g>
+              </g>
+              <!-- lane 3 · KRAS colorectal -> Trametinib -->
+              <g class="lane" data-lane="3" style="--c:#d98404">
+                <path id="rt3" class="rt" d="M150,360 C330,360 390,270 500,270 C610,270 640,360 770,360"/>
+                <circle class="pulse" r="6"><animateMotion dur="3s" begin="1.8s" repeatCount="indefinite" rotate="auto"><mpath href="#rt3"/></animateMotion></circle>
+                <circle class="nd" cx="120" cy="360" r="30"/>
+                <text class="nd-tag" x="120" y="365" text-anchor="middle">KRAS</text>
+                <text class="nd-sub" x="120" y="410" text-anchor="middle">Colorectal</text>
+                <g class="rx"><rect class="rxn" x="770" y="340" width="200" height="40" rx="6"/><text class="rxt" x="870" y="365" text-anchor="middle">Trametinib</text></g>
+              </g>
+              <!-- lane 4 · BRCA ovarian -> Olaparib -->
+              <g class="lane" data-lane="4" style="--c:#0f8f5f">
+                <path id="rt4" class="rt" d="M150,450 C330,450 380,270 500,270 C620,270 640,450 770,450"/>
+                <circle class="pulse" r="6"><animateMotion dur="3s" begin="2.4s" repeatCount="indefinite" rotate="auto"><mpath href="#rt4"/></animateMotion></circle>
+                <circle class="nd" cx="120" cy="450" r="30"/>
+                <text class="nd-tag" x="120" y="455" text-anchor="middle">BRCA</text>
+                <text class="nd-sub" x="120" y="500" text-anchor="middle">Ovarian</text>
+                <g class="rx"><rect class="rxn" x="770" y="430" width="200" height="40" rx="6"/><text class="rxt" x="870" y="455" text-anchor="middle">Olaparib</text></g>
+              </g>
             </g>
-            <!-- traveling pulses (the "matching" happening) -->
-            <circle class="pulse" r="6" fill="#6366f1"><animateMotion dur="2.6s" begin="0s"   repeatCount="indefinite" rotate="auto"><mpath href="#rt1"/></animateMotion></circle>
-            <circle class="pulse" r="6" fill="#0ea5e9"><animateMotion dur="2.6s" begin="0.9s" repeatCount="indefinite" rotate="auto"><mpath href="#rt2"/></animateMotion></circle>
-            <circle class="pulse" r="6" fill="#ec4899"><animateMotion dur="2.6s" begin="1.7s" repeatCount="indefinite" rotate="auto"><mpath href="#rt3"/></animateMotion></circle>
-            <!-- AI hub -->
+
+            <!-- AI hub: rotating rings + gear-brain core -->
             <g class="hub">
-              <circle class="hub-glow" cx="450" cy="165" r="52"/>
-              <circle class="hub-core" cx="450" cy="165" r="40"/>
-              <text x="450" y="171" text-anchor="middle">AI</text>
+              <circle class="hub-glow" cx="500" cy="270" r="86"/>
+              <circle class="hub-ring r1" cx="500" cy="270" r="76"/>
+              <circle class="hub-ring r2" cx="500" cy="270" r="62"/>
+              <circle class="hub-core" cx="500" cy="270" r="50"/>
+              <g class="hub-ico" transform="translate(500 270)"><use href="#ic-ai" x="-17" y="-17" width="34" height="34"/></g>
+              <text class="hub-t" x="500" y="378" text-anchor="middle">248 drugs scored</text>
             </g>
-            <!-- sample nodes (unique tumors) -->
-            <g class="nodes">
-              <circle class="nd" cx="70" cy="90"  r="19" style="--c:#6366f1"/>
-              <circle class="nd" cx="70" cy="165" r="19" style="--c:#0ea5e9"/>
-              <circle class="nd" cx="70" cy="240" r="19" style="--c:#ec4899"/>
-            </g>
-            <!-- therapy pills with names inside -->
-            <g class="rx">
-              <rect class="rxn" x="690" y="78"  width="150" height="34" rx="17" style="--c:#10b981"/>
-              <text class="rxt" x="765" y="100" text-anchor="middle">Dabrafenib</text>
-              <rect class="rxn" x="690" y="148" width="150" height="34" rx="17" style="--c:#0ea5e9"/>
-              <text class="rxt" x="765" y="170" text-anchor="middle">Gefitinib</text>
-              <rect class="rxn" x="690" y="218" width="150" height="34" rx="17" style="--c:#6366f1"/>
-              <text class="rxt" x="765" y="240" text-anchor="middle">Paclitaxel</text>
-            </g>
-            <!-- axis labels -->
-            <text class="dia-lab" x="70"  y="300" text-anchor="middle">unique tumors</text>
-            <text class="dia-lab" x="450" y="246" text-anchor="middle">Karkive AI</text>
-            <text class="dia-lab" x="765" y="300" text-anchor="middle">best matches</text>
           </svg>
-          <figcaption>One sample in, the right treatment out.</figcaption>
+          <figcaption>One sample in, the right treatment out. <span class="dia-hint">— hover a tumor to trace its match</span></figcaption>
         </figure>
       </section>
 
@@ -237,17 +287,17 @@
         <p class="section-sub">Three reasons the molecular profile, not the organ, should steer treatment.</p>
         <div class="cards-3">
           <article class="feature">
-            <span class="feat-ico" style="--c:#6366f1">🧬</span>
+            <span class="feat-ico" style="--c:#e0141d"><svg class="ico"><use href="#ic-dna"/></svg></span>
             <h3>Cancer isn't one disease</h3>
             <p>A breast tumor driven by <b>HER2</b> behaves nothing like one driven by <b>BRCA</b> loss. The driver mutation often decides what works far more than where the tumor sits.</p>
           </article>
           <article class="feature">
-            <span class="feat-ico" style="--c:#f59e0b">⏳</span>
+            <span class="feat-ico" style="--c:#d98404"><svg class="ico"><use href="#ic-clock"/></svg></span>
             <h3>Trial-and-error is expensive</h3>
             <p>Every cycle on an ineffective regimen is time a tumor keeps growing. Matching therapy to biology up front is the entire promise of precision oncology.</p>
           </article>
           <article class="feature">
-            <span class="feat-ico" style="--c:#10b981">🔍</span>
+            <span class="feat-ico" style="--c:#1257c4"><svg class="ico"><use href="#ic-lens"/></svg></span>
             <h3>Black boxes don't belong in medicine</h3>
             <p>Every Karkive recommendation ships with the biomarkers that drove it and an honest uncertainty band. No mystery scores; you can see the reasoning.</p>
           </article>
@@ -268,13 +318,13 @@
       <section class="wrap">
         <h2 class="section-title">From sample to shortlist, in four steps</h2>
         <div class="pipeline">
-          <div class="pstep"><span class="pnum">1</span><span class="pico">🧪</span><h4>Profile</h4><p>Driver mutations, tissue and MSI describe the tumor.</p></div>
+          <div class="pstep"><span class="pnum">1</span><span class="pico" style="--c:#e0141d"><svg class="ico"><use href="#ic-flask"/></svg></span><h4>Profile</h4><p>Driver mutations, tissue and MSI describe the tumor.</p></div>
           <div class="parrow">→</div>
-          <div class="pstep"><span class="pnum">2</span><span class="pico">🤖</span><h4>Predict</h4><p>The model scores every therapy's sensitivity.</p></div>
+          <div class="pstep"><span class="pnum">2</span><span class="pico" style="--c:#1257c4"><svg class="ico"><use href="#ic-ai"/></svg></span><h4>Predict</h4><p>The model scores every therapy's sensitivity.</p></div>
           <div class="parrow">→</div>
-          <div class="pstep"><span class="pnum">3</span><span class="pico">📊</span><h4>Rank</h4><p>Therapies ordered, each with a confidence band.</p></div>
+          <div class="pstep"><span class="pnum">3</span><span class="pico" style="--c:#d81b73"><svg class="ico"><use href="#ic-chart"/></svg></span><h4>Rank</h4><p>Therapies ordered, each with a confidence band.</p></div>
           <div class="parrow">→</div>
-          <div class="pstep"><span class="pnum">4</span><span class="pico">💡</span><h4>Explain</h4><p>The biomarkers behind the top match, quantified.</p></div>
+          <div class="pstep"><span class="pnum">4</span><span class="pico" style="--c:#d98404"><svg class="ico"><use href="#ic-bulb"/></svg></span><h4>Explain</h4><p>The biomarkers behind the top match, quantified.</p></div>
         </div>
         <div class="center"><a class="btn primary" data-tab="matcher" href="#matcher">Match a tumor now →</a></div>
       </section>
@@ -313,34 +363,34 @@
       <div class="page-head">
         <span class="eyebrow">Methodology</span>
         <h1 class="glitch">How Karkive thinks</h1>
-        <p class="lede">A transparent pipeline built on a well-worn idea in pharmacogenomics: predict how a tumor responds to <em>every</em> drug, then rank.</p>
+        <p class="lede">A transparent pipeline built on a well-worn idea in pharmacogenomics: <span class="hl">predict how a tumor responds to every drug</span>, then rank.</p>
       </div>
 
       <section class="wrap">
         <div class="flow">
           <article class="flow-step">
-            <div class="flow-ico" style="--c:#6366f1">🧪</div>
+            <div class="flow-ico" style="--c:#e0141d"><svg class="ico"><use href="#ic-flask"/></svg></div>
             <div>
               <h3>1 · Profile the tumor</h3>
               <p>A sample is described by the features GDSC records for every cell line: <b>driver-gene mutations</b> (TP53, KRAS, EGFR, BRAF, ALK, ERBB2, BRCA1/2, PIK3CA, PTEN, NRAS, APC, CDKN2A), <b>ERBB2/HER2 amplification</b>, <b>MSI status</b>, and the <b>tissue of origin</b>. Anything you leave out is treated as not-present and flagged.</p>
             </div>
           </article>
           <article class="flow-step">
-            <div class="flow-ico" style="--c:#0ea5e9">🤖</div>
+            <div class="flow-ico" style="--c:#1257c4"><svg class="ico"><use href="#ic-ai"/></svg></div>
             <div>
               <h3>2 · Predict drug response</h3>
               <p>Karkive frames this as <b>drug-response prediction</b>: for each of the <em>248</em> drugs, a gradient-boosted model is trained on the real cell lines that were screened against it, predicting how sensitive a profile is (from the drug's measured IC50 values). Modeling each drug on its own screened lines handles the fact that not every drug was tested on every line.</p>
             </div>
           </article>
           <article class="flow-step">
-            <div class="flow-ico" style="--c:#10b981">📊</div>
+            <div class="flow-ico" style="--c:#d81b73"><svg class="ico"><use href="#ic-chart"/></svg></div>
             <div>
               <h3>3 · Rank with calibrated uncertainty</h3>
               <p>Drugs are ranked by predicted sensitivity, shown as a <b>percentile</b> ("more sensitive than X% of cell lines"), with an uncertainty band from the model's held-out residuals. A <b>decision margin</b> tells you how clearly the top pick beats the runner-up. A wide margin is a confident call; a narrow one says “these are close.”</p>
             </div>
           </article>
           <article class="flow-step">
-            <div class="flow-ico" style="--c:#ec4899">💡</div>
+            <div class="flow-ico" style="--c:#d98404"><svg class="ico"><use href="#ic-bulb"/></svg></div>
             <div>
               <h3>4 · Explain every call</h3>
               <p>For the recommended therapy, Karkive reports a <b>signed, quantified attribution</b>: how many percentage points each biomarker added or subtracted, split into <b>supporting factors</b> and <b>resistance cautions</b>. The recommendation is a glass box, not a black one.</p>
@@ -352,9 +402,9 @@
       <section class="wrap">
         <h2 class="section-title">Three ways to ask</h2>
         <div class="cards-3">
-          <article class="feature"><span class="feat-ico" style="--c:#6366f1">📄</span><h3>Upload a file</h3><p>Drop a single tumor as CSV, TSV, or JSON. Wide, key-value, or one-record formats all parse.</p></article>
-          <article class="feature"><span class="feat-ico" style="--c:#0ea5e9">🎛️</span><h3>Fill in a form</h3><p>No file? Pick a tissue and toggle the mutations and markers; the form is generated from the model's own schema.</p></article>
-          <article class="feature"><span class="feat-ico" style="--c:#10b981">📋</span><h3>Score a cohort</h3><p>Upload one tumor per row and get a ranked recommendation table for the whole group, exportable to CSV.</p></article>
+          <article class="feature"><span class="feat-ico" style="--c:#e0141d"><svg class="ico"><use href="#ic-file"/></svg></span><h3>Upload a file</h3><p>Drop a single tumor as CSV, TSV, or JSON. Wide, key-value, or one-record formats all parse.</p></article>
+          <article class="feature"><span class="feat-ico" style="--c:#1257c4"><svg class="ico"><use href="#ic-sliders"/></svg></span><h3>Fill in a form</h3><p>No file? Pick a tissue and toggle the mutations and markers; the form is generated from the model's own schema.</p></article>
+          <article class="feature"><span class="feat-ico" style="--c:#d81b73"><svg class="ico"><use href="#ic-table"/></svg></span><h3>Score a cohort</h3><p>Upload one tumor per row and get a ranked recommendation table for the whole group, exportable to CSV.</p></article>
         </div>
       </section>
 
@@ -480,7 +530,7 @@
           <form id="uploadForm">
             <label class="dropzone" id="dropzone" for="fileInput">
               <input type="file" id="fileInput" accept=".csv,.tsv,.json,.txt" hidden />
-              <span class="dz-icon" aria-hidden="true">⤓</span>
+              <span class="dz-icon" aria-hidden="true"><svg class="ico"><use href="#ic-download"/></svg></span>
               <span class="dz-main" id="dzMain">Drop a sample file or <u>browse</u></span>
               <span class="dz-sub" id="dzSub">CSV · TSV · JSON · a single tumor sample</span>
             </label>
@@ -523,7 +573,7 @@
         <div class="card result-card" id="resultCard">
           <h3 id="resultTitle">2 · Recommended therapy</h3>
           <div class="placeholder" id="placeholder">
-            <span aria-hidden="true">🧬</span>
+            <span aria-hidden="true"><svg class="ico"><use href="#ic-dna"/></svg></span>
             <p>Upload a sample to see the ranked match.</p>
           </div>
 
@@ -543,7 +593,7 @@
 
             <div class="chips-row">
               <span class="metric-chip" id="marginChip" title="Sensitivity gap between the top two therapies"></span>
-              <button type="button" class="share-btn" id="shareBtn" title="Copy a link that reproduces this case">🔗 Share this case</button>
+              <button type="button" class="share-btn" id="shareBtn" title="Copy a link that reproduces this case"><svg class="ico"><use href="#ic-link"/></svg> Share this case</button>
             </div>
 
             <div class="explain-cols">
@@ -570,7 +620,7 @@
           <div id="batchResults" hidden>
             <div class="batch-head">
               <div><b id="batchCount">0</b> tumor samples ranked</div>
-              <button type="button" class="btn small" id="downloadCsv">⤓ Download CSV</button>
+              <button type="button" class="btn small" id="downloadCsv"><svg class="ico"><use href="#ic-download"/></svg> Download CSV</button>
             </div>
             <div class="table-wrap">
               <table class="cohort">
@@ -592,11 +642,93 @@
         Treatment decisions require a qualified oncologist and validated diagnostics.
       </div>
     </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="tab-section" data-pane="about" hidden>
+      <div class="page-head compact">
+        <span class="eyebrow">Behind the byline</span>
+        <h1 class="glitch">Meet the creator</h1>
+        <p class="lede">Karkive is a one-person project. Here's who's building it — and why it matters to me.</p>
+      </div>
+
+      <section class="wrap">
+        <div class="about-grid">
+          <aside class="creator-card">
+            <div class="avatar" aria-hidden="true">
+              <svg viewBox="0 0 120 120"><defs>
+                <pattern id="avdot" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="1.6" cy="1.6" r="1.4" fill="rgba(255,255,255,.35)"/></pattern>
+              </defs>
+              <rect width="120" height="120" fill="url(#avdot)"/></svg>
+              <span>EB</span>
+            </div>
+            <h3>Ekam Bhela</h3>
+            <p class="role"><svg class="ico"><use href="#ic-cap"/></svg> Freshman · Biology</p>
+            <p class="role sub">San Diego State University</p>
+            <div class="creator-tags">
+              <span class="pill">Precision oncology</span>
+              <span class="pill">Machine learning</span>
+              <span class="pill">Cancer biology</span>
+            </div>
+          </aside>
+
+          <div class="about-body">
+            <span class="eyebrow">The origin story</span>
+            <h2 class="about-h">Why I'm building Karkive</h2>
+            <p>
+              Cancer isn't abstract to me. It has reached into my own family and taken people I love,
+              and I've watched up close how much of treatment can still feel like a search in the dark —
+              trying one thing, waiting, then trying the next. That experience is the reason this project
+              exists.
+            </p>
+            <p>
+              I'm a biology freshman at San Diego State, and I'm not going to pretend I have this all
+              figured out. But I'd rather start building toward the future I want to see — where a
+              tumor's own biology, not the average patient, decides the treatment — than wait until
+              I'm "qualified enough." Karkive is me teaching myself the science and the machine learning
+              in public, one version at a time.
+            </p>
+            <p>
+              It's early, it's imperfect, and every rough edge here is a thing I'm still learning. But
+              the goal behind it is completely serious: to chip away, however slightly, at the gap
+              between how cancer is treated today and how precisely it <em>could</em> be.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div class="band mission">
+        <strong>The dream is simple:</strong> a world where beating cancer is a matter of reading the
+        biology correctly, not guessing. Karkive is my first swing at it.
+      </div>
+
+      <section class="wrap">
+        <h2 class="section-title">What keeps me at it</h2>
+        <div class="vision-grid">
+          <article class="vision-card belief">
+            <span class="vnum"><svg class="ico"><use href="#ic-heart"/></svg></span>
+            <h3>It's personal</h3>
+            <p>This started with my own family. Every improvement to the model is, in a small way, for them and for anyone else still waiting on an answer that fits <em>their</em> cancer.</p>
+          </article>
+          <article class="vision-card reality">
+            <span class="vnum"><svg class="ico"><use href="#ic-cap"/></svg></span>
+            <h3>Learning out loud</h3>
+            <p>I'm a first-year student, so I'm learning the biology, the statistics, and the engineering as I go. Building in the open keeps me honest about what I do and don't understand yet.</p>
+          </article>
+          <article class="vision-card goal">
+            <span class="vnum"><svg class="ico"><use href="#ic-spark"/></svg></span>
+            <h3>Real data, real biology</h3>
+            <p>Karkive is grounded in real GDSC drug-response data and recovers real pharmacogenomics. It's a demo today, but the ambition is to keep pushing it toward something genuinely useful.</p>
+          </article>
+        </div>
+      </section>
+
+      <div class="center"><a class="btn primary lg" data-tab="matcher" href="#matcher">See what it does →</a></div>
+    </section>
   </main>
 
   <footer>
     <div class="foot-inner">
-      <span class="foot-brand"><span class="brand-mark">◈</span> Karkive</span>
+      <span class="foot-brand"><span class="brand-mark"><svg class="mark-ico"><use href="#ic-mark"/></svg></span> Karkive</span>
       <span>Per-drug gradient-boosted models trained on real GDSC cell-line drug response</span>
       <a href="/api/health" target="_blank" rel="noopener">model status</a>
     </div>
