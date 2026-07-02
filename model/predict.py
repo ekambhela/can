@@ -184,13 +184,25 @@ def _pct(z: float) -> float:
     return float(np.clip(norm.cdf(z) * 100.0, 0.0, 100.0))
 
 
-def _confidence(zs: np.ndarray) -> float:
-    """How clearly the top pick stands out from the whole drug panel: the top
-    drug's sensitivity as a percentile of all drugs' predictions for this sample.
-    (Softmax-max is unstable once the panel is large, so we use stand-out.)"""
+def _confidence(zs: np.ndarray, resid_top: float = 0.6) -> float:
+    """How clearly the top pick separates from its *closest rivals* — the next
+    few best drugs — relative to the model's own prediction noise.
+
+    Measuring against the whole 264-drug panel is useless: the best drug is
+    always many std above the panel mean, so that saturates at ~1.0 for every
+    sample. What actually matters is whether #1 stands apart from the handful of
+    near-ties just behind it. We take the gap between the top drug and the mean
+    of ranks 2-6, in units of the top drug's held-out residual std, then map it
+    through the normal CDF. A clear standout -> high; a cluster of near-ties ->
+    ~0.5 (honestly uncertain which single drug is best)."""
     zs = np.asarray(zs, dtype=float)
-    z = (zs.max() - zs.mean()) / (zs.std() + 1e-9)
-    return float(min(0.99, norm.cdf(z)))
+    if zs.size < 2:
+        return 0.5
+    order = np.sort(zs)[::-1]
+    top = float(order[0])
+    rivals = float(order[1:6].mean()) if order.size >= 6 else float(order[1:].mean())
+    z = (top - rivals) / (resid_top + 1e-9)
+    return float(np.clip(norm.cdf(z), 0.01, 0.99))
 
 
 def _explain(sample: dict, therapy: str, models: dict) -> dict:
@@ -232,7 +244,7 @@ def predict(sample: dict, top_k: int | None = 8) -> dict:
     if top_k:
         order = order[:top_k]
     zarr = np.array([zs[n] for n in names])
-    confidence = _confidence(zarr)
+    confidence = _confidence(zarr, resid.get(order[0], 0.6))
     pcts = {n: _pct(zs[n]) for n in names}
     margin = round((pcts[order[0]] - pcts[order[1]]) / 100.0, 4) if len(order) > 1 else 0.0
 
@@ -262,6 +274,7 @@ def predict_batch(samples: list[dict]) -> dict:
     bundle = load_bundle()
     models = bundle["models"]
     meta = bundle["drug_meta"]
+    resid = bundle.get("resid_std", {})
     names = list(models.keys())
     X = pd.concat([_row(s) for s in samples], ignore_index=True)
     Z = {n: models[n].predict(X) for n in names}
@@ -277,7 +290,7 @@ def predict_batch(samples: list[dict]) -> dict:
             "cancer_type": TISSUE_LABELS.get(s.get("tissue", ""), s.get("tissue", "")),
             "recommendation": top, "drug_class": meta.get(top, {}).get("target", ""),
             "match_percent": round(pcts[top], 1),
-            "confidence": round(_confidence(np.array(list(zs.values()))), 4),
+            "confidence": round(_confidence(np.array(list(zs.values())), resid.get(top, 0.6)), 4),
             "decision_margin": round((pcts[top] - pcts[second]) / 100.0, 4),
             "runner_up": second, "runner_up_percent": round(pcts[second], 1),
         })
