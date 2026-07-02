@@ -299,6 +299,15 @@ function renderSingle(d) {
   mc.textContent = `Decision margin: ${marginPts} pts over #2`;
   mc.className = "metric-chip " + (d.decision_margin >= 0.1 ? "good" : d.decision_margin >= 0.04 ? "mid" : "low");
 
+  // comic "burst" stamp: a punchy verdict word based on how sure the call is
+  const headline = document.querySelector("#results .headline");
+  if (headline) {
+    let burst = headline.querySelector(".burst");
+    if (!burst) { burst = document.createElement("span"); burst.className = "burst"; headline.appendChild(burst); }
+    burst.textContent = d.confidence >= 0.8 ? "BULLSEYE!" : d.confidence >= 0.62 ? "STRONG!" : "CLOSE CALL!";
+    burst.style.animation = "none"; void burst.offsetWidth; burst.style.animation = "";  // replay pop
+  }
+
   $("recSupport").innerHTML = top.supporting.map(renderFactor).join("");
   const cautionCol = $("cautionCol");
   if (top.cautions && top.cautions.length) {
@@ -468,4 +477,23 @@ document.querySelectorAll(".chip.run").forEach((a) => {
     });
     card.addEventListener("mouseleave", () => card.style.removeProperty("transform"));
   });
+})();
+
+/* ---- interactive halftone spotlight that trails the cursor ---- */
+(function halftone() {
+  const ht = document.getElementById("halftone");
+  if (!ht || window.matchMedia("(hover: none)").matches) return;
+  let tx = -999, ty = -999, cx = -999, cy = -999, raf = null;
+  const tick = () => {
+    cx += (tx - cx) * 0.18; cy += (ty - cy) * 0.18;
+    ht.style.setProperty("--mx", cx.toFixed(1) + "px");
+    ht.style.setProperty("--my", cy.toFixed(1) + "px");
+    if (Math.abs(tx - cx) > 0.4 || Math.abs(ty - cy) > 0.4) { raf = requestAnimationFrame(tick); }
+    else { raf = null; }
+  };
+  window.addEventListener("mousemove", (e) => {
+    tx = e.clientX; ty = e.clientY;
+    if (cx < -900) { cx = tx; cy = ty; }        // avoid a swoop from the corner on first move
+    if (!raf) raf = requestAnimationFrame(tick);
+  }, { passive: true });
 })();

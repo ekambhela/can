@@ -25,7 +25,9 @@ tool — in a light theme with custom graphics.
   (natural-log IC50).
 - **Genomic features:** per cell line — tissue of origin, MSI status, driver-gene
   mutation flags, and copy-number alterations (incl. ERBB2/HER2 amplification).
-- **Drug panel:** all **264** GDSC compounds we can name authoritatively, spanning
+- **Drug panel:** all **248** distinct GDSC compounds we can name authoritatively
+  (264 named annotations, with the 16 compounds screened twice merged into one
+  denoised target each), spanning
   **24** target pathways (BRAF/MEK inhibitors, EGFR/HER2 inhibitors, PI3K/MTOR,
   DNA-damaging cytotoxics, cell-cycle, and more). Names and target pathways come
   from the public GDSC screened-compounds annotation (redistributed via the
@@ -56,7 +58,7 @@ tool — in a light theme with custom graphics.
 
 | Metric | Value |
 | --- | --- |
-| Top-10 accuracy (true best drug in top 10 of 264) | **~30%** |
+| Top-10 accuracy (true best drug in top 10 of 248) | **~30%** |
 | Mean percentile rank of the true best drug | **~0.72** |
 | Mean per-drug Spearman (predicted vs real IC50) | **~0.31** |
 | Mean per-drug R² | **~0.14** |

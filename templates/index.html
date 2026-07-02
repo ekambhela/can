@@ -8,10 +8,12 @@
   <script>document.documentElement.className = "js";</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Tinos:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
+  <!-- interactive halftone spotlight that follows the cursor -->
+  <div id="halftone" aria-hidden="true"></div>
   <!-- scroll progress bar -->
   <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
   <!-- side spine: a line + dot that travels with the page scroll -->
@@ -37,11 +39,11 @@
       <div class="hero">
         <div class="hero-copy">
           <span class="eyebrow">Precision oncology · trained on real GDSC data</span>
-          <h1>The right therapy, matched to the <em>tumor</em>, not the average patient.</h1>
+          <h1 class="glitch">The right therapy, matched to the <em>tumor</em>, not the average patient.</h1>
           <p class="lede">
             Karkive learns from <b id="nCellLines">988</b> real human cancer cell lines
             in the GDSC drug-screening project, then reads a tumor's genomic profile and
-            ranks <b id="nTherapies">264</b> drugs by predicted sensitivity, with the
+            ranks <b id="nTherapies">248</b> drugs by predicted sensitivity, with the
             biomarkers behind every recommendation.
           </p>
           <div class="hero-cta">
@@ -76,14 +78,14 @@
                 <div class="pv-name">Dabrafenib</div>
                 <div class="pv-sub">BRAF inhibitor · 99th-pct sensitivity</div>
               </div>
-              <div class="pv-ring"><span>99%</span></div>
+              <div class="pv-ring"><span>89%</span><small>confidence</small></div>
             </div>
             <div class="pv-meta"><span class="pv-margin">BRAF mutation · +61 pts</span></div>
             <ul class="pv-bars">
-              <li><span class="pv-drug">Dabrafenib</span><span class="pv-bar"><i style="--w:99%"></i></span><b>99%</b></li>
-              <li><span class="pv-drug">SB590885</span><span class="pv-bar"><i style="--w:99%"></i></span><b>99%</b></li>
-              <li><span class="pv-drug">PLX-4720</span><span class="pv-bar"><i style="--w:98%"></i></span><b>98%</b></li>
-              <li><span class="pv-drug">(5Z)-7-Oxozeaenol</span><span class="pv-bar"><i style="--w:96%"></i></span><b>96%</b></li>
+              <li><span class="pv-drug">Dabrafenib</span><span class="pv-bar"><i style="--w:99%"></i></span><b>99</b></li>
+              <li><span class="pv-drug">SB590885</span><span class="pv-bar"><i style="--w:99%"></i></span><b>99</b></li>
+              <li><span class="pv-drug">PLX-4720</span><span class="pv-bar"><i style="--w:98%"></i></span><b>98</b></li>
+              <li><span class="pv-drug">PD0325901</span><span class="pv-bar"><i style="--w:93%"></i></span><b>93</b></li>
             </ul>
           </div>
         </div>
@@ -107,7 +109,7 @@
             Karkive is under active development and subject to many changes. The model, the
             underlying data, the drug panel, and the design are all moving targets, expect it to
             look and behave differently as it grows. The drug panel now spans the full GDSC screen —
-            264 named compounds across 24 target pathways. Feedback and rough edges are part of the process.
+            248 distinct compounds across 24 target pathways (replicate screens merged). Feedback and rough edges are part of the process.
           </p>
         </div>
       </div>
@@ -256,7 +258,7 @@
       <section class="wrap">
         <div class="stat-band">
           <div class="stat-cell"><b class="count" data-to="988">0</b><span>cancer cell lines</span><small>real GDSC drug screens</small></div>
-          <div class="stat-cell"><b class="count" data-to="264">0</b><span>drugs ranked</span><small>named GDSC compounds</small></div>
+          <div class="stat-cell"><b class="count" data-to="248">0</b><span>drugs ranked</span><small>distinct GDSC compounds</small></div>
           <div class="stat-cell"><b class="count" data-to="30" data-suffix="%">0</b><span>top-10 accuracy</span><small>true best drug in the top ten</small></div>
           <div class="stat-cell"><b class="count" data-to="0.31" data-dec="2">0</b><span>rank correlation</span><small>predicted vs real IC50</small></div>
         </div>
@@ -310,7 +312,7 @@
       </div>
       <div class="page-head">
         <span class="eyebrow">Methodology</span>
-        <h1>How Karkive thinks</h1>
+        <h1 class="glitch">How Karkive thinks</h1>
         <p class="lede">A transparent pipeline built on a well-worn idea in pharmacogenomics: predict how a tumor responds to <em>every</em> drug, then rank.</p>
       </div>
 
@@ -327,7 +329,7 @@
             <div class="flow-ico" style="--c:#0ea5e9">🤖</div>
             <div>
               <h3>2 · Predict drug response</h3>
-              <p>Karkive frames this as <b>drug-response prediction</b>: for each of the <em>264</em> drugs, a gradient-boosted model is trained on the real cell lines that were screened against it, predicting how sensitive a profile is (from the drug's measured IC50 values). Modeling each drug on its own screened lines handles the fact that not every drug was tested on every line.</p>
+              <p>Karkive frames this as <b>drug-response prediction</b>: for each of the <em>248</em> drugs, a gradient-boosted model is trained on the real cell lines that were screened against it, predicting how sensitive a profile is (from the drug's measured IC50 values). Modeling each drug on its own screened lines handles the fact that not every drug was tested on every line.</p>
             </div>
           </article>
           <article class="flow-step">
@@ -390,13 +392,13 @@
       </div>
       <div class="page-head">
         <span class="eyebrow">Under the hood</span>
-        <h1>The science behind the match</h1>
+        <h1 class="glitch">The science behind the match</h1>
         <p class="lede">The therapy panel, the biomarker rules that ground the model, and how well it actually performs.</p>
       </div>
 
       <section class="wrap">
         <h2 class="section-title">The therapy panel</h2>
-        <p class="section-sub">All <b>264</b> named GDSC compounds, spanning <b>24</b> target pathways — from broad cytotoxics to precisely targeted kinase inhibitors.</p>
+        <p class="section-sub">All <b>248</b> distinct GDSC compounds, spanning <b>24</b> target pathways — from broad cytotoxics to precisely targeted kinase inhibitors.</p>
         <div class="panel-cols">
           <div class="drug-col">
             <h4 class="dc-title" style="--c:#6366f1">Cytotoxic / DNA</h4>
@@ -420,7 +422,7 @@
             </div>
           </div>
         </div>
-        <p class="hint" style="text-align:center;margin-top:14px">The GDSC screen covers 265 compounds; we name and model <b>264</b> of them from the public GDSC screened-compounds annotation, so every ranked drug carries an authoritative name and target pathway.</p>
+        <p class="hint" style="text-align:center;margin-top:14px">The GDSC screen covers 265 compounds; we name 264 from the public GDSC screened-compounds annotation and, after merging the 16 compounds screened twice into one denoised target each, model <b>248</b> distinct drugs — so every ranked drug carries an authoritative name and target pathway.</p>
       </section>
 
       <section class="wrap">
@@ -441,7 +443,7 @@
         <p class="section-sub">Honest numbers, held out on 20% of cell lines. Predicting drug response from a small biomarker panel is genuinely hard.</p>
         <div class="metric-grid">
           <div class="mcard"><b>988</b><span>Real cell lines</span></div>
-          <div class="mcard"><b>264</b><span>Drugs modeled</span></div>
+          <div class="mcard"><b>248</b><span>Drugs modeled</span></div>
           <div class="mcard"><b>~30%</b><span>Top-10 accuracy</span></div>
           <div class="mcard"><b>0.72</b><span>Best-drug percentile</span></div>
           <div class="mcard"><b>0.31</b><span>Mean rank correlation</span></div>
@@ -461,7 +463,7 @@
     <section class="tab-section" data-pane="matcher" hidden>
       <div class="page-head compact">
         <span class="eyebrow">The tool</span>
-        <h1>Match a tumor to its therapy</h1>
+        <h1 class="glitch">Match a tumor to its therapy</h1>
         <p class="lede">Upload a sample, fill in a profile, or score a whole cohort, then read the ranked match and the reasoning.</p>
       </div>
 

@@ -44,29 +44,50 @@ BINARY_FEATURES = MUTATION_FEATURES + [ERBB2_AMP, MSI]
 # GDSC "screened compounds" table, validated against the authoritative GDSC
 # database export bundled in gdsctools (9/9 anchor IDs match exactly).
 # See data/gdsc/README.md.
-def _load_drugs() -> dict:
-    """Return {drug_id: (display_name, target_pathway, targets)} for every v17
-    drug column we can name. Duplicate names are disambiguated by drug id."""
+import re as _re
+
+
+def _load_drugs() -> tuple[dict, dict]:
+    """Collapse the v17 drug columns to one clean entry per *compound*.
+
+    Several compounds were screened twice (two drug ids, e.g. Afatinib /
+    "Afatinib (1377)"). We group by base name, keep the screen with the most
+    measurements as the canonical id, and record every source screen so the
+    replicates can be averaged into one denoised target.
+
+    Returns (DRUGS, DRUG_SOURCE):
+      DRUGS       {canonical_id: (display_name, target_pathway, targets)}
+      DRUG_SOURCE {canonical_id: [source_drug_id, ...]}   (>=1 per compound)
+    """
     import pandas as pd
-    ic_cols = pd.read_csv(os.path.join(DATA_DIR, "IC50_v17.csv.gz"), nrows=0).columns
-    v17_ids = [int(c.split("_")[1]) for c in ic_cols if c.startswith("Drug_")]
+    ic = pd.read_csv(os.path.join(DATA_DIR, "IC50_v17.csv.gz"), nrows=1)
+    v17_ids = [int(c.split("_")[1]) for c in ic.columns if c.startswith("Drug_")]
+    counts = {i: int(pd.read_csv(os.path.join(DATA_DIR, "IC50_v17.csv.gz"),
+                                 usecols=[f"Drug_{i}_IC50"])[f"Drug_{i}_IC50"].notna().sum())
+              for i in v17_ids}
     dl = pd.read_csv(os.path.join(DATA_DIR, "drug_list_gdsc.csv"))
     meta = {int(r.drug_id): (str(r.Name).strip(), str(r["Target pathway"]).strip(),
                              str(r.Targets).strip())
             for _, r in dl.iterrows()}
-    out, seen = {}, {}
+
+    groups: dict[str, list[int]] = {}
     for did in v17_ids:
         if did not in meta:
             continue
-        name, pathway, targets = meta[did]
-        if name in seen:                       # same drug screened twice -> unique key
-            name = f"{name} ({did})"
-        seen[name] = did
-        out[did] = (name, pathway, targets)
-    return out
+        base = _re.sub(r"\s*\(\d+\)$", "", meta[did][0]).strip()
+        groups.setdefault(base, []).append(did)
+
+    drugs, source = {}, {}
+    for base, ids in groups.items():
+        ids = sorted(ids, key=lambda d: counts[d], reverse=True)   # largest screen first
+        cid = ids[0]
+        _, pathway, targets = meta[cid]
+        drugs[cid] = (base, pathway, targets)                      # clean, unsuffixed name
+        source[cid] = ids
+    return drugs, source
 
 
-DRUGS = _load_drugs()
+DRUGS, DRUG_SOURCE = _load_drugs()
 DRUG_COL = {i: f"Drug_{i}_IC50" for i in DRUGS}
 THERAPY_NAMES = [DRUGS[i][0] for i in DRUGS]
 
@@ -123,9 +144,14 @@ def load_frame() -> tuple[pd.DataFrame, dict, list[str]]:
     feats["tissue"] = df["TISSUE_FACTOR"].astype(str)
 
     targets = {}
-    for i, col in DRUG_COL.items():
-        v = df[col].astype(float)
-        targets[col] = -(v - v.mean()) / v.std()   # z-scored sensitivity
+    for cid, col in DRUG_COL.items():
+        # average all replicate screens of this compound (z-scored per screen so
+        # the two batches are on the same scale), ignoring NaNs.
+        zcols = []
+        for sid in DRUG_SOURCE[cid]:
+            v = df[f"Drug_{sid}_IC50"].astype(float)
+            zcols.append(-(v - v.mean()) / v.std())
+        targets[col] = pd.concat(zcols, axis=1).mean(axis=1)   # NaN only where all screens missing
 
     tissues = sorted(df["TISSUE_FACTOR"].astype(str).unique().tolist())
     return feats, targets, tissues
