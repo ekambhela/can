@@ -13,6 +13,8 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
+  <!-- fixed DNA-helix watermark background -->
+  <div class="site-bg" aria-hidden="true"></div>
   <!-- interactive halftone spotlight that follows the cursor -->
   <div id="halftone" aria-hidden="true"></div>
 
@@ -35,6 +37,9 @@
     <symbol id="ic-cap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l10 4.5-10 4.5L2 8.5 12 4z"/><path d="M6 10.7V15c0 1.6 2.7 3 6 3s6-1.4 6-3v-4.3"/><path d="M22 8.5V14"/></symbol>
     <symbol id="ic-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
     <symbol id="ic-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z"/></symbol>
+    <symbol id="ic-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6"/><path d="M17 14.6a5.5 5.5 0 0 1 3.5 5.4"/></symbol>
+    <symbol id="ic-coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.2v9.6M14.3 9.1c-.6-.7-1.4-1-2.5-1-1.4 0-2.4.8-2.4 1.9 0 2.7 5 1.4 5 4.1 0 1.2-1.1 2-2.6 2-1.1 0-2-.4-2.6-1.1"/></symbol>
+    <symbol id="ic-nomatch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/></symbol>
   </defs></svg>
   <!-- scroll progress bar -->
   <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
@@ -48,6 +53,7 @@
     </a>
     <nav class="navlinks" aria-label="Primary">
       <a class="navlink active" data-tab="home" href="#home">Home</a>
+      <a class="navlink" data-tab="problem" href="#problem">The problem</a>
       <a class="navlink" data-tab="how" href="#how">How it works</a>
       <a class="navlink" data-tab="science" href="#science">The science</a>
       <a class="navlink" data-tab="matcher" href="#matcher">Matcher</a>
@@ -333,6 +339,45 @@
         <strong>Research &amp; educational use only.</strong> Karkive is a demonstration of pharmacogenomic
         drug-response modeling, <em>not</em> a validated clinical tool. It must not guide patient care.
       </div>
+    </section>
+
+    <!-- ============ THE PROBLEM ============ -->
+    <section class="tab-section" data-pane="problem" hidden>
+      <div class="page-head compact">
+        <span class="eyebrow">The problem</span>
+        <h1>Chemotherapy is still, too often, one&#8209;size&#8209;fits&#8209;all</h1>
+        <p class="lede">When someone is diagnosed and needs chemotherapy, the drug they receive is usually chosen from a standard protocol for that cancer type — not from the specific biology of <em>their</em> tumor.</p>
+      </div>
+
+      <section class="wrap">
+        <div class="prob-grid">
+          <article class="prob-card">
+            <div class="prob-ico"><svg class="ico"><use href="#ic-people"/></svg></div>
+            <h3>It isn't personalized</h3>
+            <p>Treatment tends to follow the <b>average patient</b> for a given cancer type and stage. But two people with the “same” diagnosis can have tumors running on completely different genetic wiring — and respond to completely different drugs.</p>
+          </article>
+          <article class="prob-card">
+            <div class="prob-ico"><svg class="ico"><use href="#ic-coin"/></svg></div>
+            <h3>Testing every drug is slow and expensive</h3>
+            <p>Physically screening a tumor sample against dozens of chemotherapies means growing cells and running assay after assay — <b>costly lab work</b> that can take weeks. <span class="prob-stat">All while the cancer keeps growing.</span></p>
+          </article>
+          <article class="prob-card">
+            <div class="prob-ico"><svg class="ico"><use href="#ic-nomatch"/></svg></div>
+            <h3>Often, no clear match is found</h3>
+            <p>Even after all that testing, many tumors never show a strong response to anything on the shelf. Care then falls back to <b>trial and error</b> — cycle after cycle of “try it and see,” losing precious time.</p>
+          </article>
+        </div>
+
+        <div class="solution">
+          <div class="solution-mark"><svg><use href="#ic-target"/></svg></div>
+          <div>
+            <span class="eyebrow">The solution</span>
+            <h3>Where Karkive comes in</h3>
+            <p>Karkive aims to skip the guesswork. From a tumor's genomic profile alone, it predicts how that tumor is likely to respond to <b>248 drugs computationally, in seconds</b> — before any physical screening — and returns a ranked, explained shortlist of the therapies most worth trying first.</p>
+            <a class="btn primary" data-tab="how" href="#how">See how it works →</a>
+          </div>
+        </div>
+      </section>
     </section>
 
     <!-- ============ HOW IT WORKS ============ -->

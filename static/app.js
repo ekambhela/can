@@ -29,7 +29,7 @@ async function loadStats() {
 loadStats();
 
 /* ---- tab navigation ---- */
-const TABS = ["home", "how", "science", "matcher", "about"];
+const TABS = ["home", "problem", "how", "science", "matcher", "about"];
 function showTab(name) {
   if (!TABS.includes(name)) name = "home";
   document.querySelectorAll(".tab-section").forEach((s) => { s.hidden = s.dataset.pane !== name; });
@@ -76,7 +76,7 @@ function animateCounters() {
 (function setupReveal() {
   const sel = ".feature, .flow-step, .stat-cell, .pstep, .rule, .mcard, .drug-col, " +
               ".vision-card, .match-figure, .band.mission, .pipeline, .preview, " +
-              ".section-title, .about-h, .page-head h1, .hl";
+              ".prob-card, .solution, .section-title, .about-h, .page-head h1, .hl";
   const els = document.querySelectorAll(sel);
   if (!("IntersectionObserver" in window)) {
     els.forEach((el) => el.classList.add("in"));
@@ -305,7 +305,7 @@ function renderSingle(d) {
   if (headline) {
     let burst = headline.querySelector(".burst");
     if (!burst) { burst = document.createElement("span"); burst.className = "burst"; headline.appendChild(burst); }
-    burst.textContent = d.confidence >= 0.8 ? "BULLSEYE!" : d.confidence >= 0.62 ? "STRONG!" : "CLOSE CALL!";
+    burst.textContent = d.confidence >= 0.8 ? "High confidence" : d.confidence >= 0.62 ? "Moderate confidence" : "Low confidence";
     burst.style.animation = "none"; void burst.offsetWidth; burst.style.animation = "";  // replay pop
   }
 
