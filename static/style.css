@@ -59,16 +59,16 @@ body {
   background-image:
     radial-gradient(1100px 640px at 88% -12%, rgba(79, 70, 229, .07), transparent 60%),
     radial-gradient(940px 620px at -8% 2%, rgba(13, 148, 136, .06), transparent 58%),
-    url("/static/dna-bg.svg?v=2");
+    url("/static/dna-bg.svg?v=3");
   background-repeat: no-repeat, no-repeat, repeat;
   background-position: center, center, center 0;
-  background-size: auto, auto, 1440px 1225px;
-  animation: bgdrift 60s linear infinite;
+  background-size: auto, auto, 1440px 1400px;
+  animation: bgdrift 66s linear infinite;
 }
-/* animate only the helix layer's vertical position by exactly one tile (1225px) */
+/* animate only the helix layer's vertical position by exactly one tile (1400px) */
 @keyframes bgdrift {
   from { background-position: center, center, center 0; }
-  to   { background-position: center, center, center -1225px; }
+  to   { background-position: center, center, center -1400px; }
 }
 /* soft brand washes drift too, for a subtle living feel */
 .site-bg::after {
