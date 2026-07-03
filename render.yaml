@@ -8,3 +8,8 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     autoDeploy: true
+    # Custom domain (registered on GoDaddy). Render provisions these and a
+    # free TLS cert once the GoDaddy DNS records point at this service.
+    domains:
+      - karkive.com
+      - www.karkive.com
