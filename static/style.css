@@ -608,3 +608,26 @@ html.js .section-title, html.js .about-h, html.js .page-head h1 {
 
 /* tab panes stack cleanly */
 .tab-section.has-bg { position: relative; }
+
+/* =====================================================================
+   LOWERCASE TYPOGRAPHIC TREATMENT
+   Applied to headings, nav, labels, buttons and UI chrome for the
+   lowercase aesthetic. Body prose (p/li/td/lede) is intentionally left
+   in natural case so acronyms (GDSC, BRAF, IC50, DNA) stay correct.
+   ===================================================================== */
+h1, h2, h3, h4,
+.brand, .foot-brand, .navlink, .nav-cta, .btn,
+.eyebrow, .kicker, .pv-kicker, .pv-name, .pv-sub,
+.section-title, .about-h, .page-head h1,
+.dc-title, .sec, .rank-title, .group-title, .field-label, .he-live, #rotEx,
+.wip-badge, .mode, .metric-chip, .stat-cell span, .stat-cell small,
+.mcard span, table.cohort th, .rec-name, .rec-class, .rec-band,
+.prob-card h3, .prob-stat, .solution h3, .vision-card h3,
+.feature h3, .flow-step h3, .pstep h4, .pstep p,
+.dz-main, .dz-sub, .hint, .samples p, .chip, .pill, .biomark, .drug,
+.pv-drug, .pv-margin, .pv-chip, .metric-chip,
+.match-figure figcaption, .dia-hint, .head, .dia-lab, .nd-tag, .nd-sub, .rxt, .hub-t,
+.hero-trust, .creator-card h3, .role, .placeholder p, .cau-badge,
+.rank-name b, .rank-name small, .bar-val, .file-meta, .parsed summary {
+  text-transform: lowercase !important;
+}

@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Karkive · Precision tumor-to-chemotherapy matching</title>
-  <meta name="description" content="Karkive learns from real GDSC cancer cell-line drug screens and ranks drugs by predicted sensitivity for a tumor's genomic profile, with the biomarkers behind every call." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23efe6d2'/%3E%3Cg fill='none' stroke='%23e0141d' stroke-width='2.2'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='1.4' fill='%23e0141d'/%3E%3C/svg%3E" />
+  <title>karkive · precision tumor-to-chemotherapy matching</title>
+  <meta name="description" content="karkive learns from real GDSC cancer cell-line drug screens and ranks drugs by predicted sensitivity for a tumor's genomic profile, with the biomarkers behind every call." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23f5f7fb'/%3E%3Cg fill='none' stroke='%234f46e5' stroke-width='2.2'%3E%3Ccircle cx='12' cy='12' r='8'/%3E%3Ccircle cx='12' cy='12' r='3.8'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='1.3' fill='%234f46e5'/%3E%3C/svg%3E" />
   <script>document.documentElement.className = "js";</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=7" />
 </head>
 <body>
   <!-- fixed DNA-helix watermark background -->
@@ -49,7 +49,7 @@
   <!-- ============ NAV ============ -->
   <header class="nav">
     <a class="brand" data-tab="home" href="#home">
-      <span class="brand-mark" aria-hidden="true"><svg class="mark-ico"><use href="#ic-mark"/></svg></span> Karkive
+      <span class="brand-mark" aria-hidden="true"><svg class="mark-ico"><use href="#ic-mark"/></svg></span> karkive
     </a>
     <nav class="navlinks" aria-label="Primary">
       <a class="navlink active" data-tab="home" href="#home">Home</a>
@@ -70,7 +70,7 @@
           <span class="eyebrow">Precision oncology · trained on real GDSC data</span>
           <h1 class="glitch">The right therapy, matched to the <em>tumor</em>, not the average patient.</h1>
           <p class="lede">
-            Karkive learns from <b id="nCellLines">988</b> real human cancer cell lines
+            karkive learns from <b id="nCellLines">988</b> real human cancer cell lines
             in the GDSC drug-screening project, then reads a tumor's genomic profile and
             ranks <b id="nTherapies">248</b> drugs by predicted sensitivity, with
             <span class="hl">the biomarkers behind every recommendation</span>.
@@ -124,7 +124,7 @@
       <div class="band mission">
         <p>
           Two patients with the “same” cancer can need completely different drugs.
-          <strong>Karkive exists to make that difference visible</strong>, turning a
+          <strong>karkive exists to make that difference visible</strong>, turning a
           tumor's genomics into a ranked, explained treatment shortlist in seconds.
         </p>
       </div>
@@ -135,7 +135,7 @@
         <div class="wip-body">
           <h3>This is an evolving research project</h3>
           <p>
-            Karkive is under active development and subject to many changes. The model, the
+            karkive is under active development and subject to many changes. The model, the
             underlying data, the drug panel, and the design are all moving targets, expect it to
             look and behave differently as it grows. The drug panel now spans the full GDSC screen —
             248 distinct compounds across 24 target pathways (replicate screens merged). Feedback and rough edges are part of the process.
@@ -175,7 +175,7 @@
         </div>
 
         <span class="eyebrow center-eyebrow">The vision</span>
-        <h2 class="section-title">Why I built Karkive</h2>
+        <h2 class="section-title">Why I built karkive</h2>
 
         <div class="vision-grid">
           <article class="vision-card belief">
@@ -204,9 +204,9 @@
 
           <article class="vision-card goal">
             <span class="vnum">03</span>
-            <h3>Where Karkive comes in</h3>
+            <h3>Where karkive comes in</h3>
             <p>
-              Karkive is my small attempt at chipping away at that gap. The idea is simple:
+              karkive is my small attempt at chipping away at that gap. The idea is simple:
               take a tumor's genomic profile, learn from real drug-response data, and suggest
               which drugs it's most likely to respond to, ranked, explained, and upfront about
               what it doesn't know. It's early and imperfect, but I'd rather build it in the
@@ -219,7 +219,7 @@
         <!-- animated, interactive matching diagram (hover a tumor to trace its match) -->
         <figure class="match-figure">
           <svg class="match-dia" id="matchDia" viewBox="0 0 1000 540" xmlns="http://www.w3.org/2000/svg" role="img"
-               aria-label="Five tumor samples flow through Karkive's AI and are each matched to the drug they respond to best: BRAF melanoma to Dabrafenib, EGFR lung to Gefitinib, HER2 breast to Afatinib, KRAS colorectal to Trametinib, BRCA ovarian to Olaparib.">
+               aria-label="Five tumor samples flow through karkive's AI and are each matched to the drug they respond to best: BRAF melanoma to Dabrafenib, EGFR lung to Gefitinib, HER2 breast to Afatinib, KRAS colorectal to Trametinib, BRCA ovarian to Olaparib.">
             <!-- column headers -->
             <text class="dia-lab head" x="120" y="34" text-anchor="middle">TUMOR SAMPLES</text>
             <text class="dia-lab head" x="500" y="34" text-anchor="middle">KARKIVE AI</text>
@@ -305,7 +305,7 @@
           <article class="feature">
             <span class="feat-ico" style="--c:#1257c4"><svg class="ico"><use href="#ic-lens"/></svg></span>
             <h3>Black boxes don't belong in medicine</h3>
-            <p>Every Karkive recommendation ships with the biomarkers that drove it and an honest uncertainty band. No mystery scores; you can see the reasoning.</p>
+            <p>Every karkive recommendation ships with the biomarkers that drove it and an honest uncertainty band. No mystery scores; you can see the reasoning.</p>
           </article>
         </div>
       </section>
@@ -336,7 +336,7 @@
       </section>
 
       <div class="band note">
-        <strong>Research &amp; educational use only.</strong> Karkive is a demonstration of pharmacogenomic
+        <strong>Research &amp; educational use only.</strong> karkive is a demonstration of pharmacogenomic
         drug-response modeling, <em>not</em> a validated clinical tool. It must not guide patient care.
       </div>
     </section>
@@ -372,8 +372,8 @@
           <div class="solution-mark"><svg><use href="#ic-target"/></svg></div>
           <div>
             <span class="eyebrow">The solution</span>
-            <h3>Where Karkive comes in</h3>
-            <p>Karkive aims to skip the guesswork. From a tumor's genomic profile alone, it predicts how that tumor is likely to respond to <b>248 drugs computationally, in seconds</b> — before any physical screening — and returns a ranked, explained shortlist of the therapies most worth trying first.</p>
+            <h3>Where karkive comes in</h3>
+            <p>karkive aims to skip the guesswork. From a tumor's genomic profile alone, it predicts how that tumor is likely to respond to <b>248 drugs computationally, in seconds</b> — before any physical screening — and returns a ranked, explained shortlist of the therapies most worth trying first.</p>
             <a class="btn primary" data-tab="how" href="#how">See how it works →</a>
           </div>
         </div>
@@ -407,7 +407,7 @@
       </div>
       <div class="page-head">
         <span class="eyebrow">Methodology</span>
-        <h1 class="glitch">How Karkive thinks</h1>
+        <h1 class="glitch">How karkive thinks</h1>
         <p class="lede">A transparent pipeline built on a well-worn idea in pharmacogenomics: <span class="hl">predict how a tumor responds to every drug</span>, then rank.</p>
       </div>
 
@@ -424,7 +424,7 @@
             <div class="flow-ico" style="--c:#1257c4"><svg class="ico"><use href="#ic-ai"/></svg></div>
             <div>
               <h3>2 · Predict drug response</h3>
-              <p>Karkive frames this as <b>drug-response prediction</b>: for each of the <em>248</em> drugs, a gradient-boosted model is trained on the real cell lines that were screened against it, predicting how sensitive a profile is (from the drug's measured IC50 values). Modeling each drug on its own screened lines handles the fact that not every drug was tested on every line.</p>
+              <p>karkive frames this as <b>drug-response prediction</b>: for each of the <em>248</em> drugs, a gradient-boosted model is trained on the real cell lines that were screened against it, predicting how sensitive a profile is (from the drug's measured IC50 values). Modeling each drug on its own screened lines handles the fact that not every drug was tested on every line.</p>
             </div>
           </article>
           <article class="flow-step">
@@ -438,7 +438,7 @@
             <div class="flow-ico" style="--c:#d98404"><svg class="ico"><use href="#ic-bulb"/></svg></div>
             <div>
               <h3>4 · Explain every call</h3>
-              <p>For the recommended therapy, Karkive reports a <b>signed, quantified attribution</b>: how many percentage points each biomarker added or subtracted, split into <b>supporting factors</b> and <b>resistance cautions</b>. The recommendation is a glass box, not a black one.</p>
+              <p>For the recommended therapy, karkive reports a <b>signed, quantified attribution</b>: how many percentage points each biomarker added or subtracted, split into <b>supporting factors</b> and <b>resistance cautions</b>. The recommendation is a glass box, not a black one.</p>
             </div>
           </article>
         </div>
@@ -454,7 +454,7 @@
       </section>
 
       <div class="band note alt">
-        <strong>An honest footnote.</strong> Karkive learns from real GDSC data, but from cancer
+        <strong>An honest footnote.</strong> karkive learns from real GDSC data, but from cancer
         <em>cell lines</em>, not patients, and from a limited biomarker panel. It recovers real biology
         (see the science page) yet its accuracy is modest, exactly what you'd expect when predicting drug
         response from a handful of markers. It demonstrates the workflow; it is not a clinical predictor.
@@ -693,7 +693,7 @@
       <div class="page-head compact">
         <span class="eyebrow">Behind the byline</span>
         <h1 class="glitch">Meet the creator</h1>
-        <p class="lede">Karkive is a one-person project. Here's who's building it — and why it matters to me.</p>
+        <p class="lede">karkive is a one-person project. Here's who's building it — and why it matters to me.</p>
       </div>
 
       <section class="wrap">
@@ -715,7 +715,7 @@
 
           <div class="about-body">
             <span class="eyebrow">The origin story</span>
-            <h2 class="about-h">Why I'm building Karkive</h2>
+            <h2 class="about-h">Why I'm building karkive</h2>
             <p>
               Cancer isn't abstract to me. It has reached into my own family and taken people I love,
               and I've watched up close how much of treatment can still feel like a search in the dark —
@@ -726,7 +726,7 @@
               I'm a biology freshman at San Diego State, and I'm not going to pretend I have this all
               figured out. But I'd rather start building toward the future I want to see — where a
               tumor's own biology, not the average patient, decides the treatment — than wait until
-              I'm "qualified enough." Karkive is me teaching myself the science and the machine learning
+              I'm "qualified enough." karkive is me teaching myself the science and the machine learning
               in public, one version at a time.
             </p>
             <p>
@@ -740,7 +740,7 @@
 
       <div class="band mission">
         <strong>The dream is simple:</strong> a world where beating cancer is a matter of reading the
-        biology correctly, not guessing. Karkive is my first swing at it.
+        biology correctly, not guessing. karkive is my first swing at it.
       </div>
 
       <section class="wrap">
@@ -759,7 +759,7 @@
           <article class="vision-card goal">
             <span class="vnum"><svg class="ico"><use href="#ic-spark"/></svg></span>
             <h3>Real data, real biology</h3>
-            <p>Karkive is grounded in real GDSC drug-response data and recovers real pharmacogenomics. It's a demo today, but the ambition is to keep pushing it toward something genuinely useful.</p>
+            <p>karkive is grounded in real GDSC drug-response data and recovers real pharmacogenomics. It's a demo today, but the ambition is to keep pushing it toward something genuinely useful.</p>
           </article>
         </div>
       </section>
@@ -770,12 +770,12 @@
 
   <footer>
     <div class="foot-inner">
-      <span class="foot-brand"><span class="brand-mark"><svg class="mark-ico"><use href="#ic-mark"/></svg></span> Karkive</span>
+      <span class="foot-brand"><span class="brand-mark"><svg class="mark-ico"><use href="#ic-mark"/></svg></span> karkive</span>
       <span>Per-drug gradient-boosted models trained on real GDSC cell-line drug response</span>
       <a href="/api/health" target="_blank" rel="noopener">model status</a>
     </div>
   </footer>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=7"></script>
 </body>
 </html>
