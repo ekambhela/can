@@ -131,8 +131,8 @@ def main(seed: int = 0) -> dict:
         "therapy_class": THERAPY_CLASS,
         "resid_std": resid_std,
         "metrics": metrics,
-        "version": 4,
-        "data": "GDSC release 17 (real cell-line drug response)",
+        "version": 5,
+        "data": "GDSC release 17 (GDSC1) + GDSC2 (25Feb20) real cell-line drug response",
     }
     joblib.dump(bundle, os.path.join(ARTIFACTS, "model.joblib"))
     with open(os.path.join(ARTIFACTS, "metrics.json"), "w") as fh:

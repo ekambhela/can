@@ -19,21 +19,22 @@ tool — in a light theme with custom graphics.
 
 ## The data
 
-- **Source:** GDSC release 17, redistributed in the official Sanger `gdsctools`
-  package (BSD-3). Files live in [`data/gdsc/`](data/gdsc/).
-- **IC50 matrix:** 988 human cancer cell lines × 265 screened compounds
-  (natural-log IC50).
+- **Source:** two independent GDSC screens — **GDSC1** (release 17, redistributed
+  in the official Sanger `gdsctools` package, BSD-3) and **GDSC2** (25 Feb 2020
+  fitted-dose-response, redistributed via the public DeepTTC repo). Files live in
+  [`data/gdsc/`](data/gdsc/).
+- **IC50 matrix:** 988 human cancer cell lines × 265 GDSC1 compounds, plus the
+  GDSC2 assay for the 806 of those lines it also tested (natural-log IC50). Both
+  screens key on the same `COSMIC_ID`, so GDSC2 joins onto the same features.
 - **Genomic features:** per cell line — tissue of origin, MSI status, driver-gene
   mutation flags, and copy-number alterations (incl. ERBB2/HER2 amplification).
-- **Drug panel:** all **248** distinct GDSC compounds we can name authoritatively
-  (264 named annotations, with the 16 compounds screened twice merged into one
-  denoised target each), spanning
-  **24** target pathways (BRAF/MEK inhibitors, EGFR/HER2 inhibitors, PI3K/MTOR,
-  DNA-damaging cytotoxics, cell-cycle, and more). Names and target pathways come
-  from the public GDSC screened-compounds annotation (redistributed via the
-  DeepCDR repo), validated against the authoritative 9-drug GDSC database export
-  bundled in `gdsctools` (all anchor IDs match). 264 of the 265 v17 drug columns
-  are named; the one unnameable column is dropped rather than mislabeled.
+- **Drug panel:** **369** distinct compounds — **248** from GDSC1 (264 named,
+  16 replicate screens merged into one denoised target each) plus **121** new
+  compounds from GDSC2 (namespaced ids so they never collide), spanning **24**
+  target pathways (BRAF/MEK inhibitors, EGFR/HER2 inhibitors incl. Osimertinib,
+  PI3K/AKT incl. Alpelisib, PARP incl. Olaparib/Niraparib, DNA-damaging
+  cytotoxics, cell-cycle/mitosis, and more). GDSC2 compounds already present in
+  GDSC1 are skipped so no drug appears twice.
 - **Cite:** Iorio et al., *Cell* 2016; Yang et al., *Nucleic Acids Research* 2013.
 
 ## How the model works
@@ -58,10 +59,10 @@ tool — in a light theme with custom graphics.
 
 | Metric | Value |
 | --- | --- |
-| Top-10 accuracy (true best drug in top 10 of 248) | **~30%** |
+| Top-10 accuracy (true best drug in top 10 of 369) | **~24%** |
 | Mean percentile rank of the true best drug | **~0.72** |
-| Mean per-drug Spearman (predicted vs real IC50) | **~0.31** |
-| Mean per-drug R² | **~0.14** |
+| Mean per-drug Spearman (predicted vs real IC50) | **~0.34** |
+| Mean per-drug R² | **~0.16** |
 
 These are honest, modest numbers — predicting drug response from a small
 biomarker panel is genuinely hard. What matters is that the model **recovers real

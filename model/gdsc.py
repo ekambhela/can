@@ -84,6 +84,22 @@ def _load_drugs() -> tuple[dict, dict]:
         _, pathway, targets = meta[cid]
         drugs[cid] = (base, pathway, targets)                      # clean, unsuffixed name
         source[cid] = ids
+
+    # --- add GDSC2 compounds we don't already model (ids namespaced 200000+) ----
+    # GDSC2 is a separate, newer Sanger screen. We add only compounds absent from
+    # the GDSC1/v17 panel so no drug name appears twice. See data/gdsc/README.md.
+    g2_path = os.path.join(DATA_DIR, "drug_list_gdsc2.csv")
+    if os.path.exists(g2_path):
+        seen = {_re.sub(r"[^a-z0-9]", "", n.lower()) for (n, _p, _t) in drugs.values()}
+        for _, r in pd.read_csv(g2_path).iterrows():
+            name = str(r.Name).strip()
+            key = _re.sub(r"[^a-z0-9]", "", name.lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            nid = int(r.drug_id)
+            drugs[nid] = (name, str(r["Target pathway"]).strip(), str(r.Targets).strip())
+            source[nid] = [nid]
     return drugs, source
 
 
@@ -135,6 +151,11 @@ def load_frame() -> tuple[pd.DataFrame, dict, list[str]]:
     ic = pd.read_csv(os.path.join(DATA_DIR, "IC50_v17.csv.gz"))
     gf = pd.read_csv(os.path.join(DATA_DIR, "genomic_features_v17.csv.gz"))
     df = gf.merge(ic, on="COSMIC_ID")
+
+    # merge the added GDSC2 screen (same COSMIC ids; NaN for lines it didn't test)
+    g2_path = os.path.join(DATA_DIR, "IC50_gdsc2.csv.gz")
+    if os.path.exists(g2_path):
+        df = df.merge(pd.read_csv(g2_path), on="COSMIC_ID", how="left")
 
     feats = pd.DataFrame()
     for f in MUTATION_FEATURES:

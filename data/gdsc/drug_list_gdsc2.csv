@@ -1,0 +1,127 @@
+drug_id,Name,Targets,Target pathway
+201003,Camptothecin,TOP1,DNA replication
+201034,Staurosporine,Broad spectrum kinase inhibitor,RTK signaling
+201048,Mirin,MRE11,Genome integrity
+201051,Alisertib,AURKA,Mitosis
+201088,Irinotecan,TOP1,DNA replication
+201089,Oxaliplatin,DNA alkylating agent,DNA replication
+201131,PRIMA-1MET,TP53 activation,p53 pathway
+201177,Niraparib,"PARP1, PARP2",Genome integrity
+201179,MK-1775,"WEE1, PLK1",Cell cycle
+201180,Dinaciclib,"CDK1, CDK2, CDK5, CDK9",Cell cycle
+201200,Fulvestrant,ESR,Hormone-related
+201237,EPZ004777,DOT1L,Chromatin histone methylation
+201250,AZ960,"JAK2, JAK3","Other, kinases"
+201401,AZD5438,CDK2,Cell cycle
+201428,IAP_5620,IAP,Other
+201441,AZD2014,"mTORC1, mTORC2",PI3K/MTOR signaling
+201449,AZD1208,"PIM1, PIM2, PIM3","Other, kinases"
+201463,AZD1332,"NTRK1, NTRK2, NTRK3",RTK signaling
+201511,Epirubicin,Anthracycline,DNA replication
+201512,Cyclophosphamide,Alkylating agent,DNA replication
+201549,Sapitinib,"EGFR, ERBB2, ERBB3",EGFR signaling
+201553,Uprosertib,"AKT1, AKT2, AKT3",PI3K/MTOR signaling
+201557,LCL161,"XIAP, IAP1, IAP2",Apoptosis regulation
+201560,Alpelisib,PI3Kalpha,PI3K/MTOR signaling
+201561,Taselisib,PI3K (beta sparing),PI3K/MTOR signaling
+201563,EPZ5676,DOT1L,Chromatin histone methylation
+201564,SCH772984,"ERK1, ERK2",ERK MAPK signaling
+201576,IWP-2,PORCN,WNT signaling
+201578,Leflunomide,Pyrimidine synthesis inhibitor,DNA replication
+201598,LGK974,PORCN,WNT signaling
+201613,VE-822,ATR,Genome integrity
+201614,WZ4003,"NUAK1, NUAK2","Other, kinases"
+201615,CZC24832,PI3Kgamma,PI3K/MTOR signaling
+201617,AZD5582,"XIAP, cIAP",Apoptosis regulation
+201618,GSK2606414,PERK,Metabolism
+201620,PFI3,"Polybromo 1, SMARCA4, SMARCA2",Chromatin other
+201621,PCI-34051,"HDAC8, HDAC6, HDAC1",Chromatin histone acetylation
+201622,Wnt-C59,PORCN,WNT signaling
+201625,RVX-208,BRD4,Chromatin other
+201626,OTX015,"BRD2, BRD3, BRD4",Chromatin other
+201627,GSK343,EZH2,Chromatin histone methylation
+201629,ML323,"USP1, UAF1",Protein stability and degradation
+201630,Entospletinib,SYK,"Other, kinases"
+201631,PRT062607,SYK,"Other, kinases"
+201632,Ribociclib,"CDK4, CDK6",Cell cycle
+201634,AGI-6780,IDH2 R140Q mutant,Metabolism
+201635,Picolinici-acid,Inflammatory related,Other
+201706,AZD5153,BRD4,Chromatin other
+201708,CDK9_5576,CDK9,Cell cycle
+201709,CDK9_5038,CDK9,Cell cycle
+201712,Eg5_9814,KSP11,Other
+201713,ERK_2440,"ERK1,ERK2",ERK MAPK signaling
+201714,ERK_6604,"ERK1,ERK2",ERK MAPK signaling
+201716,IRAK4_4710,IRAK4,"Other, kinases"
+201718,JAK1_8709,JAK1,"Other, kinases"
+201720,AZD5991,MCL1,Apoptosis regulation
+201730,PAK_5339,"PAK1, PAK2",Cytoskeleton
+201732,TAF1_5496,TAF1,Other
+201733,ULK1_4989,ULK1,"Other, kinases"
+201734,VSP34_8731,VSP34,Other
+201738,IGF1R_3801,IGFR1,IGF1R signaling
+201739,JAK_8517,"JAK1, JAK2","Other, kinases"
+201786,AZD4547,"FGFR1, FGFR2, FGFR3",RTK signaling
+201799,Ibrutinib,BTK,"Other, kinases"
+201802,Zoledronate,,Unclassified
+201804,Acetalax,,Unclassified
+201806,Oxaliplatin,DNA alkylating agent,DNA replication
+201807,Carmustine,,DNA replication
+201808,Topotecan,,DNA replication
+201809,Teniposide,,DNA replication
+201810,Mitoxantrone,,DNA replication
+201811,Dactinomycin,,Other
+201813,Fludarabine,,Unclassified
+201814,Nelarabine,,DNA replication
+201816,Fulvestrant,,Hormone-related
+201818,Vincristine,,Mitosis
+201825,Podophyllotoxin bromide,,Unclassified
+201827,Dihydrorotenone,,Unclassified
+201830,Gallibiscoquinazole,,Unclassified
+201835,Elephantin,,Unclassified
+201838,Sinularin,,Unclassified
+201849,Sabutoclax,"BCL2,  BCL-XL,  BFL1, MCL1",Apoptosis regulation
+201852,LY2109761,TGFB1,Other
+201853,OF-1,"BRPF1B, BRPF2",Chromatin histone acetylation
+201854,MN-64,"TNKS1, TNKS2",WNT signaling
+201855,KRAS (G12C) Inhibitor-12,KRAS (G12C),ERK MAPK signaling
+201866,BDP-00009066,MRCKB_HUMAN,Cytoskeleton
+201873,Buparlisib,"PI3Kalpha, PI3Kdelta, PI3Kbeta, PI3Kgamma",PI3K/MTOR signaling
+201908,Ulixertinib,"ERK1, ERK2",ERK MAPK signaling
+201909,Venetoclax,BCL2,Apoptosis regulation
+201910,ABT737,"BCL2, BCL-XL,  BCL-W, BCL-B, BFL1",Apoptosis regulation
+201911,Dactinomycin,RNA polymerase,Other
+201912,Afuresertib,"AKT1, AKT2, AKT3",PI3K/MTOR signaling
+201913,AGI-5198,IDH1 (R132H),Metabolism
+201915,AZD3759,EGFR,EGFR signaling
+201916,AZD5363,"AKT1, AKT2, AKT3, ROCK2","Other, kinases"
+201917,AZD6738,ATR,Genome integrity
+201918,AZD8186,"PI3Kalpha, PI3Kbeta",PI3K/MTOR signaling
+201919,Osimertinib,EGFR,EGFR signaling
+201922,Cediranib,"VEGFR, FLT1, FLT2, FLT3, FLT4, KIT, PDGFRB",RTK signaling
+201924,Ipatasertib,"AKT1, AKT, AKT3",PI3K/MTOR signaling
+201925,GDC0810,"ESR1, ESR2",Hormone-related
+201926,GNE-317,PI3Kalpha,PI3K/MTOR signaling
+201927,GSK2578215A,LRRK2,"Other, kinases"
+201928,I-BRD9,BRD9,Chromatin other
+201930,Telomerase Inhibitor IX,Telomerase,Genome integrity
+201931,MIRA-1,TP53,p53 pathway
+201932,NVP-ADW742,IGF1R,IGF1R signaling
+201933,P22077,"USP7, USP47",Protein stability and degradation
+201936,Savolitinib,MET,RTK signaling
+201939,UMI-77,MCL1,Apoptosis regulation
+201940,WIKI4,"TNKS1, TNKS2",WNT signaling
+201996,MIM1,MCL1,Apoptosis regulation
+201997,WEHI-539,BCL-XL,Apoptosis regulation
+201998,BPD-00008900,,Other
+202043,BIBR-1532,TERT,Genome integrity
+202044,Pyridostatin,G-quadruplex stabiliser,DNA replication
+202045,AMG-319,PI3K (beta sparing),PI3K/MTOR signaling
+202046,MK-8776,"CHEK1, CHEK2, CDK2",Cell cycle
+202047,Ulixertinib,"ERK1, ERK2",ERK MAPK signaling
+202106,Uprosertib,"AKT1, AKT2, AKT3",PI3K/MTOR signaling
+202107,LJI308,"RSK2, RSK1, RSK3",PI3K/MTOR signaling
+202109,AZ6102,"TNKS1, TNKS2",WNT signaling
+202110,GSK591,PMRT5,Chromatin histone methylation
+202111,VE821,ATR,Genome integrity
+202170,AT13148,AKT1,PI3K/MTOR signaling
