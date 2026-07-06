@@ -480,17 +480,18 @@ document.querySelectorAll(".chip.run").forEach((a) => {
   });
 })();
 
-/* ---- interactive "matching network" background ----
-   Drifting nodes (tumours / compounds) link up as they come close, and reach
-   out toward the cursor — a living stand-in for the model finding matches. */
-(function bgNetwork() {
+/* ---- DNA double-helix background that coils as you scroll ----
+   A single helix down the page; the two backbones plus colour-coded
+   complementary base pairs (A·T, G·C). Scrolling advances the twist so the
+   strand appears to wind and coil. Not interactive with the cursor. */
+(function bgHelix() {
   const canvas = document.getElementById("bgnet");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const COLORS = ["79,70,229", "13,148,136", "124,92,246", "45,140,255"]; // indigo/teal/violet/blue
-  let W, H, DPR, nodes = [], raf = null;
-  const mouse = { x: -9999, y: -9999 };
+  // nucleotide colours; each base pairs with its complement across the rung
+  const BASE = { A: "37,181,122", T: "224,84,102", G: "232,170,48", C: "56,128,235" };
+  const PAIRS = [["A", "T"], ["T", "A"], ["G", "C"], ["C", "G"]];
+  let W, H, DPR, cx, seq = [], phase = 0, ticking = false;
 
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -498,57 +499,60 @@ document.querySelectorAll(".chip.run").forEach((a) => {
     H = canvas.height = Math.floor(innerHeight * DPR);
     canvas.style.width = innerWidth + "px";
     canvas.style.height = innerHeight + "px";
+    cx = W * (innerWidth < 760 ? 0.5 : 0.76);          // single strand, offset on desktop
+    const rungGap = 30 * DPR;
+    const n = Math.ceil(H / rungGap) + 2;
+    seq = Array.from({ length: n }, () => PAIRS[(Math.random() * 4) | 0]);
   }
-  function seed() {
-    const count = Math.max(28, Math.min(80, Math.round((innerWidth * innerHeight) / 17000)));
-    nodes = Array.from({ length: count }, () => ({
-      x: Math.random() * W, y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.16 * DPR, vy: (Math.random() - 0.5) * 0.16 * DPR,
-      r: (Math.random() * 1.5 + 1.3) * DPR,
-      c: COLORS[(Math.random() * COLORS.length) | 0],
-    }));
-  }
-  function frame() {
+
+  function draw() {
+    const amp = 46 * DPR, wl = 172 * DPR, step = 6 * DPR, rungGap = 30 * DPR;
+    const k = (2 * Math.PI) / wl;
     ctx.clearRect(0, 0, W, H);
-    const link = 150 * DPR, mlink = 200 * DPR;
-    for (const n of nodes) {
-      n.x += n.vx; n.y += n.vy;
-      if (n.x < 0 || n.x > W) n.vx *= -1;
-      if (n.y < 0 || n.y > H) n.vy *= -1;
-    }
-    for (let i = 0; i < nodes.length; i++) {
-      const a = nodes[i];
-      for (let j = i + 1; j < nodes.length; j++) {
-        const b = nodes[j], dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy);
-        if (d < link) {
-          ctx.strokeStyle = `rgba(${a.c},${(1 - d / link) * 0.16})`;
-          ctx.lineWidth = DPR;
-          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-        }
+
+    // two sugar-phosphate backbones
+    for (const [off, col] of [[0, "79,70,229"], [Math.PI, "13,148,136"]]) {
+      ctx.beginPath();
+      for (let y = -step; y <= H + step; y += step) {
+        const x = cx + amp * Math.sin(k * y + phase + off);
+        y === -step ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
-      const md = Math.hypot(a.x - mouse.x, a.y - mouse.y);   // reach toward cursor
-      if (md < mlink) {
-        ctx.strokeStyle = `rgba(${a.c},${(1 - md / mlink) * 0.4})`;
-        ctx.lineWidth = DPR;
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
-      }
+      ctx.strokeStyle = `rgba(${col},0.34)`; ctx.lineWidth = 2.4 * DPR; ctx.lineJoin = "round";
+      ctx.stroke();
     }
-    for (const n of nodes) {
-      ctx.fillStyle = `rgba(${n.c},0.55)`;
-      ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 6.2832); ctx.fill();
+
+    // colour-coded complementary base pairs
+    let i = 0;
+    for (let y = rungGap / 2; y < H; y += rungGap, i++) {
+      const s = Math.sin(k * y + phase);
+      const depth = Math.abs(Math.cos(k * y + phase));   // fade rungs turning edge-on
+      const xA = cx + amp * s, xB = cx - amp * s, mid = cx;
+      const [a, b] = seq[i % seq.length];
+      const alpha = 0.14 + 0.5 * depth;
+      ctx.lineWidth = 3 * DPR; ctx.lineCap = "round";
+      ctx.strokeStyle = `rgba(${BASE[a]},${alpha})`;
+      ctx.beginPath(); ctx.moveTo(xA, y); ctx.lineTo(mid, y); ctx.stroke();
+      ctx.strokeStyle = `rgba(${BASE[b]},${alpha})`;
+      ctx.beginPath(); ctx.moveTo(mid, y); ctx.lineTo(xB, y); ctx.stroke();
+      // base nodes on each backbone
+      ctx.fillStyle = `rgba(${BASE[a]},${alpha + 0.12})`;
+      ctx.beginPath(); ctx.arc(xA, y, 2.6 * DPR, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = `rgba(${BASE[b]},${alpha + 0.12})`;
+      ctx.beginPath(); ctx.arc(xB, y, 2.6 * DPR, 0, 6.2832); ctx.fill();
     }
-    raf = requestAnimationFrame(frame);
   }
-  const start = () => { if (!raf && !reduce) raf = requestAnimationFrame(frame); };
-  const stop = () => { if (raf) { cancelAnimationFrame(raf); raf = null; } };
 
-  window.addEventListener("resize", () => { resize(); seed(); }, { passive: true });
-  window.addEventListener("mousemove", (e) => { mouse.x = e.clientX * DPR; mouse.y = e.clientY * DPR; }, { passive: true });
-  window.addEventListener("mouseout", () => { mouse.x = mouse.y = -9999; });
-  document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
-
-  resize(); seed();
-  if (reduce) frame(); else start();   // reduced-motion: draw one static frame
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      phase = (window.scrollY || 0) * 0.014;   // scroll winds the coil
+      draw(); ticking = false;
+    });
+  }
+  window.addEventListener("resize", () => { resize(); draw(); }, { passive: true });
+  window.addEventListener("scroll", onScroll, { passive: true });
+  resize(); phase = (window.scrollY || 0) * 0.014; draw();
 })();
 
 /* ---- AI diagram: auto-cycle lane highlighting until the user hovers ---- */

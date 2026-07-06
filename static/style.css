@@ -61,11 +61,11 @@ body {
 .site-bg::before {
   content: ""; position: absolute; inset: -30%;
   background:
-    radial-gradient(34% 40% at 18% 24%, rgba(79, 70, 229, .26), transparent 62%),
-    radial-gradient(40% 46% at 84% 18%, rgba(13, 148, 136, .22), transparent 62%),
-    radial-gradient(46% 52% at 76% 84%, rgba(124, 92, 246, .22), transparent 64%),
-    radial-gradient(42% 48% at 20% 86%, rgba(45, 140, 255, .16), transparent 64%);
-  filter: blur(28px);
+    radial-gradient(34% 40% at 18% 24%, rgba(79, 70, 229, .18), transparent 62%),
+    radial-gradient(40% 46% at 84% 18%, rgba(13, 148, 136, .15), transparent 62%),
+    radial-gradient(46% 52% at 76% 84%, rgba(124, 92, 246, .15), transparent 64%),
+    radial-gradient(42% 48% at 20% 86%, rgba(45, 140, 255, .12), transparent 64%);
+  filter: blur(30px);
   animation: aurora 38s ease-in-out infinite alternate;
   will-change: transform;
 }
