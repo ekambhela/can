@@ -552,7 +552,11 @@ html.js .section-title, html.js .about-h, html.js .page-head h1 {
 .about-body .eyebrow { margin-bottom: 12px; }
 .about-h { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 3.4vw, 36px); margin: 10px 0 16px; letter-spacing: -.02em; }
 .about-body p { font-size: 16.5px; color: var(--ink-2); margin: 0 0 16px; line-height: 1.72; }
-.about-body p:first-of-type::first-letter { font-family: var(--display); font-size: 58px; font-weight: 800; float: left; line-height: .8; padding: 6px 12px 0 0; color: var(--primary); }
+.about-body p:first-of-type::first-letter {
+  font-family: var(--display); font-weight: 800; color: var(--primary);
+  -webkit-initial-letter: 2 2; initial-letter: 2 2;   /* 2-line drop cap, browser-aligned */
+  margin-right: 12px;
+}
 
 /* ============ MATCHING DIAGRAM ============ */
 .match-figure { position: relative; z-index: 1; margin: 50px auto 0; max-width: 900px; text-align: center;
