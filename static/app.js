@@ -480,18 +480,17 @@ document.querySelectorAll(".chip.run").forEach((a) => {
   });
 })();
 
-/* ---- DNA strand that snakes across the whole screen, drawn in on scroll ----
-   A double helix follows a serpentine path (back-and-forth rows) filling the
-   viewport; scroll progress reveals more and more of the twisting strand.
-   Not interactive with the cursor. */
-(function bgStrand() {
+/* ---- soft drifting "cell field" background ----
+   Translucent cells (soft body + faint membrane + nucleus) in brand colours
+   float slowly across the page — a calm nod to the cancer cell lines the
+   model learns from. Not interactive with the cursor. */
+(function bgCells() {
   const canvas = document.getElementById("bgnet");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const BASE = { A: "37,181,122", T: "224,84,102", G: "232,170,48", C: "56,128,235" };
-  const PAIRS = [["A", "T"], ["T", "A"], ["G", "C"], ["C", "G"]];
-  let W, H, DPR, P = [], total = 0, seq = [], ticking = false;
+  const COLORS = ["79,70,229", "13,148,136", "124,92,246", "45,140,255", "214,90,150"];
+  let W, H, DPR, cells = [], raf = null;
 
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -499,90 +498,45 @@ document.querySelectorAll(".chip.run").forEach((a) => {
     H = canvas.height = Math.floor(innerHeight * DPR);
     canvas.style.width = innerWidth + "px";
     canvas.style.height = innerHeight + "px";
-    buildPath();
+    seed();
   }
-
-  // serpentine centreline filling the screen, then per-point normal/phase/arc-len
-  function buildPath() {
-    const margin = 52 * DPR, wl = 54 * DPR, amp = 15 * DPR;
-    const rows = Math.max(4, Math.round(H / (132 * DPR)));
-    const bandH = H / rows, R = bandH / 2, step = 6 * DPR;
-    const raw = [];
-    for (let r = 0; r < rows; r++) {
-      const y = bandH * (r + 0.5), ltr = r % 2 === 0;
-      const x0 = ltr ? margin : W - margin, x1 = ltr ? W - margin : margin;
-      const n = Math.max(2, Math.floor(Math.abs(x1 - x0) / step));
-      for (let i = 0; i <= n; i++) raw.push([x0 + (x1 - x0) * i / n, y]);
-      if (r < rows - 1) {                              // rounded U-turn to next row
-        const dir = ltr ? 1 : -1, cyT = y + R;
-        for (let a = 1; a <= 16; a++) {
-          const t = Math.PI * (a / 16);
-          raw.push([x1 + dir * Math.sin(t) * R, cyT - Math.cos(t) * R]);
-        }
-      }
-    }
-    // arc length + tangent normals + twist phase
-    P = []; total = 0;
-    const K = (2 * Math.PI) / wl;
-    for (let i = 0; i < raw.length; i++) {
-      const [x, y] = raw[i];
-      if (i > 0) total += Math.hypot(x - raw[i - 1][0], y - raw[i - 1][1]);
-      const nx = raw[Math.min(i + 1, raw.length - 1)], pv = raw[Math.max(i - 1, 0)];
-      let tx = nx[0] - pv[0], ty = nx[1] - pv[1];
-      const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
-      const s = Math.sin(total * K), c = Math.cos(total * K);
-      P.push({ x, y, nx: -ty, ny: tx, s, depth: Math.abs(c), amp });
-    }
-    seq = Array.from({ length: Math.ceil(total / (17 * DPR)) + 2 }, () => PAIRS[(Math.random() * 4) | 0]);
+  function seed() {
+    const n = Math.max(12, Math.min(30, Math.round((innerWidth * innerHeight) / 46000)));
+    cells = Array.from({ length: n }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      r: (Math.random() * 72 + 32) * DPR,
+      vx: (Math.random() - 0.5) * 0.13 * DPR, vy: (Math.random() - 0.5) * 0.13 * DPR,
+      c: COLORS[(Math.random() * COLORS.length) | 0],
+      ph: Math.random() * 6.28, pv: 0.003 + Math.random() * 0.005,
+    }));
   }
-
-  function draw(reveal) {                              // reveal = arc length to show
+  function frame() {
     ctx.clearRect(0, 0, W, H);
-    const amp = P.length ? P[0].amp : 0;
-    const ax = (p) => p.x + p.nx * amp * p.s, ay = (p) => p.y + p.ny * amp * p.s;
-    const bx = (p) => p.x - p.nx * amp * p.s, by = (p) => p.y - p.ny * amp * p.s;
-    // how many points are revealed (arc length is ~uniform per index)
-    const shown = Math.max(2, Math.floor((reveal / total) * P.length));
-    const lim = Math.min(P.length, shown);
-    // two backbones
-    for (const side of [1, -1]) {
-      ctx.beginPath();
-      for (let i = 0; i < lim; i++) {
-        const p = P[i], x = side > 0 ? ax(p) : bx(p), y = side > 0 ? ay(p) : by(p);
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = side > 0 ? "rgba(79,70,229,0.3)" : "rgba(13,148,136,0.3)";
-      ctx.lineWidth = 2.2 * DPR; ctx.lineJoin = "round"; ctx.stroke();
+    for (const c of cells) {
+      c.x += c.vx; c.y += c.vy; c.ph += c.pv;
+      const m = c.r * 1.3;
+      if (c.x < -m) c.x = W + m; else if (c.x > W + m) c.x = -m;
+      if (c.y < -m) c.y = H + m; else if (c.y > H + m) c.y = -m;
+      const r = c.r * (1 + 0.05 * Math.sin(c.ph));
+      const g = ctx.createRadialGradient(c.x, c.y, r * 0.1, c.x, c.y, r);
+      g.addColorStop(0, `rgba(${c.c},0.17)`);
+      g.addColorStop(0.7, `rgba(${c.c},0.06)`);
+      g.addColorStop(1, `rgba(${c.c},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, 6.2832); ctx.fill();
+      ctx.strokeStyle = `rgba(${c.c},0.1)`; ctx.lineWidth = 1.2 * DPR;
+      ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.82, 0, 6.2832); ctx.stroke();
+      ctx.fillStyle = `rgba(${c.c},0.13)`;
+      ctx.beginPath(); ctx.arc(c.x, c.y, r * 0.22, 0, 6.2832); ctx.fill();
     }
-    // colour-coded complementary base pairs every ~17px of arc length
-    const rgap = Math.max(2, Math.round((17 * DPR) / (total / P.length)));
-    let k = 0;
-    for (let i = 0; i < lim; i += rgap, k++) {
-      const p = P[i], x1 = ax(p), y1 = ay(p), x2 = bx(p), y2 = by(p);
-      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, al = 0.16 + 0.42 * p.depth;
-      const [a, b] = seq[k % seq.length];
-      ctx.lineWidth = 2.6 * DPR; ctx.lineCap = "round";
-      ctx.strokeStyle = `rgba(${BASE[a]},${al})`;
-      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(mx, my); ctx.stroke();
-      ctx.strokeStyle = `rgba(${BASE[b]},${al})`;
-      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(x2, y2); ctx.stroke();
-    }
+    raf = requestAnimationFrame(frame);
   }
-
-  function revealLen() {
-    if (reduce) return total;
-    const max = (document.documentElement.scrollHeight - innerHeight) || 0;
-    const frac = max > 10 ? Math.min(1, Math.max(0, (window.scrollY || 0) / max)) : 1;
-    return total * (0.06 + 0.94 * frac);              // a little showing at the very top
-  }
-  function render() { draw(revealLen()); }
-  function onScroll() {
-    if (ticking) return; ticking = true;
-    requestAnimationFrame(() => { render(); ticking = false; });
-  }
-  window.addEventListener("resize", () => { resize(); render(); }, { passive: true });
-  window.addEventListener("scroll", onScroll, { passive: true });
-  resize(); render();
+  const start = () => { if (!raf && !reduce) raf = requestAnimationFrame(frame); };
+  const stop = () => { if (raf) { cancelAnimationFrame(raf); raf = null; } };
+  window.addEventListener("resize", resize, { passive: true });
+  document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
+  resize();
+  if (reduce) frame(); else start();
 })();
 
 /* ---- AI diagram: auto-cycle lane highlighting until the user hovers ---- */
