@@ -51,50 +51,41 @@ body {
   font-feature-settings: "kern" 1, "liga" 1;
 }
 
-/* Living background: an animated brand-colour aurora, a seamlessly drifting
-   DNA double-helix, a soft paper light for legibility, and a cursor glow. */
+/* Living background: a brand-colour aurora + an interactive "matching network"
+   canvas (nodes = tumours/compounds, edges = the model finding a match). */
 .site-bg {
-  position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
+  position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden;
   background-color: var(--paper);
-  background-image: url("/static/dna-bg.svg?v=3");
-  background-repeat: repeat;
-  background-position: center 0;
-  background-size: 1440px 1400px;
-  animation: bgdrift 66s linear infinite;   /* helix flows upward, seamless loop */
-}
-@keyframes bgdrift {
-  from { background-position: center 0; }
-  to   { background-position: center -1400px; }
 }
 /* aurora — soft blobs of brand colour that slowly drift, swell and rotate */
 .site-bg::before {
   content: ""; position: absolute; inset: -30%;
   background:
-    radial-gradient(34% 40% at 20% 26%, rgba(79, 70, 229, .22), transparent 62%),
-    radial-gradient(38% 44% at 82% 20%, rgba(13, 148, 136, .18), transparent 62%),
-    radial-gradient(44% 50% at 74% 82%, rgba(124, 92, 246, .18), transparent 64%),
-    radial-gradient(40% 46% at 22% 84%, rgba(45, 140, 255, .14), transparent 64%);
-  filter: blur(30px);
-  animation: aurora 40s ease-in-out infinite alternate;
+    radial-gradient(34% 40% at 18% 24%, rgba(79, 70, 229, .26), transparent 62%),
+    radial-gradient(40% 46% at 84% 18%, rgba(13, 148, 136, .22), transparent 62%),
+    radial-gradient(46% 52% at 76% 84%, rgba(124, 92, 246, .22), transparent 64%),
+    radial-gradient(42% 48% at 20% 86%, rgba(45, 140, 255, .16), transparent 64%);
+  filter: blur(28px);
+  animation: aurora 38s ease-in-out infinite alternate;
   will-change: transform;
 }
 @keyframes aurora {
   0%   { transform: translate3d(-3%, -2%, 0) scale(1)    rotate(0deg); }
-  100% { transform: translate3d(3%,  2%,  0) scale(1.14) rotate(6deg); }
+  100% { transform: translate3d(3%,  2%,  0) scale(1.16) rotate(6deg); }
 }
 /* soft paper light keeps content crisp over the aurora */
 .site-bg::after {
   content: ""; position: absolute; inset: 0;
-  background: radial-gradient(58% 52% at 50% 34%, rgba(245, 247, 251, .6), rgba(245, 247, 251, 0) 70%);
+  background: radial-gradient(60% 54% at 50% 34%, rgba(245, 247, 251, .55), rgba(245, 247, 251, 0) 72%);
 }
-/* interactive: a gentle indigo glow that trails the cursor (JS sets --mx/--my) */
-#halftone {
+/* the interactive network canvas sits above the aurora, below all content */
+#bgnet {
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: radial-gradient(260px 260px at var(--mx, -999px) var(--my, -999px), rgba(79, 70, 229, .10), transparent 70%);
+  width: 100%; height: 100%;
 }
-@media (hover: none) { #halftone { display: none; } }
+#halftone { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
-  .site-bg, .site-bg::before { animation: none; }
+  .site-bg::before { animation: none; }
 }
 
 h1, h2, h3, h4 { font-family: var(--display); line-height: 1.08; color: var(--ink);
@@ -561,8 +552,7 @@ html.js .section-title, html.js .about-h, html.js .page-head h1 {
 .avatar { position: relative; width: 100%; height: auto; aspect-ratio: 4 / 5; margin: 0 auto 18px; border-radius: var(--radius);
   border: 1px solid var(--line); box-shadow: var(--shadow-sm); overflow: hidden; display: grid; place-items: center;
   background: linear-gradient(135deg, var(--primary), var(--teal)); }
-.avatar img { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; object-fit: cover;
-  transform: scale(1.65); transform-origin: 82% 60%; border-radius: inherit; }
+.avatar img { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; object-fit: cover; object-position: 76% 24%; border-radius: inherit; }
 /* 'EB' is only a fallback — it sits behind the photo, so it shows only if the image is missing */
 .avatar span { position: relative; z-index: 1; font-family: var(--display); font-size: 48px; color: #fff; letter-spacing: 2px; font-weight: 800; }
 .creator-card h3 { font-size: 25px; margin: 4px 0 10px; }
