@@ -480,18 +480,18 @@ document.querySelectorAll(".chip.run").forEach((a) => {
   });
 })();
 
-/* ---- DNA double-helix background that coils as you scroll ----
-   A single helix down the page; the two backbones plus colour-coded
-   complementary base pairs (A·T, G·C). Scrolling advances the twist so the
-   strand appears to wind and coil. Not interactive with the cursor. */
-(function bgHelix() {
+/* ---- DNA strand that snakes across the whole screen, drawn in on scroll ----
+   A double helix follows a serpentine path (back-and-forth rows) filling the
+   viewport; scroll progress reveals more and more of the twisting strand.
+   Not interactive with the cursor. */
+(function bgStrand() {
   const canvas = document.getElementById("bgnet");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
-  // nucleotide colours; each base pairs with its complement across the rung
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const BASE = { A: "37,181,122", T: "224,84,102", G: "232,170,48", C: "56,128,235" };
   const PAIRS = [["A", "T"], ["T", "A"], ["G", "C"], ["C", "G"]];
-  let W, H, DPR, cx, seq = [], phase = 0, ticking = false;
+  let W, H, DPR, P = [], total = 0, seq = [], ticking = false;
 
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -499,60 +499,90 @@ document.querySelectorAll(".chip.run").forEach((a) => {
     H = canvas.height = Math.floor(innerHeight * DPR);
     canvas.style.width = innerWidth + "px";
     canvas.style.height = innerHeight + "px";
-    cx = W * (innerWidth < 760 ? 0.5 : 0.76);          // single strand, offset on desktop
-    const rungGap = 30 * DPR;
-    const n = Math.ceil(H / rungGap) + 2;
-    seq = Array.from({ length: n }, () => PAIRS[(Math.random() * 4) | 0]);
+    buildPath();
   }
 
-  function draw() {
-    const amp = 46 * DPR, wl = 172 * DPR, step = 6 * DPR, rungGap = 30 * DPR;
-    const k = (2 * Math.PI) / wl;
-    ctx.clearRect(0, 0, W, H);
-
-    // two sugar-phosphate backbones
-    for (const [off, col] of [[0, "79,70,229"], [Math.PI, "13,148,136"]]) {
-      ctx.beginPath();
-      for (let y = -step; y <= H + step; y += step) {
-        const x = cx + amp * Math.sin(k * y + phase + off);
-        y === -step ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  // serpentine centreline filling the screen, then per-point normal/phase/arc-len
+  function buildPath() {
+    const margin = 52 * DPR, wl = 54 * DPR, amp = 15 * DPR;
+    const rows = Math.max(4, Math.round(H / (132 * DPR)));
+    const bandH = H / rows, R = bandH / 2, step = 6 * DPR;
+    const raw = [];
+    for (let r = 0; r < rows; r++) {
+      const y = bandH * (r + 0.5), ltr = r % 2 === 0;
+      const x0 = ltr ? margin : W - margin, x1 = ltr ? W - margin : margin;
+      const n = Math.max(2, Math.floor(Math.abs(x1 - x0) / step));
+      for (let i = 0; i <= n; i++) raw.push([x0 + (x1 - x0) * i / n, y]);
+      if (r < rows - 1) {                              // rounded U-turn to next row
+        const dir = ltr ? 1 : -1, cyT = y + R;
+        for (let a = 1; a <= 16; a++) {
+          const t = Math.PI * (a / 16);
+          raw.push([x1 + dir * Math.sin(t) * R, cyT - Math.cos(t) * R]);
+        }
       }
-      ctx.strokeStyle = `rgba(${col},0.34)`; ctx.lineWidth = 2.4 * DPR; ctx.lineJoin = "round";
-      ctx.stroke();
     }
+    // arc length + tangent normals + twist phase
+    P = []; total = 0;
+    const K = (2 * Math.PI) / wl;
+    for (let i = 0; i < raw.length; i++) {
+      const [x, y] = raw[i];
+      if (i > 0) total += Math.hypot(x - raw[i - 1][0], y - raw[i - 1][1]);
+      const nx = raw[Math.min(i + 1, raw.length - 1)], pv = raw[Math.max(i - 1, 0)];
+      let tx = nx[0] - pv[0], ty = nx[1] - pv[1];
+      const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+      const s = Math.sin(total * K), c = Math.cos(total * K);
+      P.push({ x, y, nx: -ty, ny: tx, s, depth: Math.abs(c), amp });
+    }
+    seq = Array.from({ length: Math.ceil(total / (17 * DPR)) + 2 }, () => PAIRS[(Math.random() * 4) | 0]);
+  }
 
-    // colour-coded complementary base pairs
-    let i = 0;
-    for (let y = rungGap / 2; y < H; y += rungGap, i++) {
-      const s = Math.sin(k * y + phase);
-      const depth = Math.abs(Math.cos(k * y + phase));   // fade rungs turning edge-on
-      const xA = cx + amp * s, xB = cx - amp * s, mid = cx;
-      const [a, b] = seq[i % seq.length];
-      const alpha = 0.14 + 0.5 * depth;
-      ctx.lineWidth = 3 * DPR; ctx.lineCap = "round";
-      ctx.strokeStyle = `rgba(${BASE[a]},${alpha})`;
-      ctx.beginPath(); ctx.moveTo(xA, y); ctx.lineTo(mid, y); ctx.stroke();
-      ctx.strokeStyle = `rgba(${BASE[b]},${alpha})`;
-      ctx.beginPath(); ctx.moveTo(mid, y); ctx.lineTo(xB, y); ctx.stroke();
-      // base nodes on each backbone
-      ctx.fillStyle = `rgba(${BASE[a]},${alpha + 0.12})`;
-      ctx.beginPath(); ctx.arc(xA, y, 2.6 * DPR, 0, 6.2832); ctx.fill();
-      ctx.fillStyle = `rgba(${BASE[b]},${alpha + 0.12})`;
-      ctx.beginPath(); ctx.arc(xB, y, 2.6 * DPR, 0, 6.2832); ctx.fill();
+  function draw(reveal) {                              // reveal = arc length to show
+    ctx.clearRect(0, 0, W, H);
+    const amp = P.length ? P[0].amp : 0;
+    const ax = (p) => p.x + p.nx * amp * p.s, ay = (p) => p.y + p.ny * amp * p.s;
+    const bx = (p) => p.x - p.nx * amp * p.s, by = (p) => p.y - p.ny * amp * p.s;
+    // how many points are revealed (arc length is ~uniform per index)
+    const shown = Math.max(2, Math.floor((reveal / total) * P.length));
+    const lim = Math.min(P.length, shown);
+    // two backbones
+    for (const side of [1, -1]) {
+      ctx.beginPath();
+      for (let i = 0; i < lim; i++) {
+        const p = P[i], x = side > 0 ? ax(p) : bx(p), y = side > 0 ? ay(p) : by(p);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = side > 0 ? "rgba(79,70,229,0.3)" : "rgba(13,148,136,0.3)";
+      ctx.lineWidth = 2.2 * DPR; ctx.lineJoin = "round"; ctx.stroke();
+    }
+    // colour-coded complementary base pairs every ~17px of arc length
+    const rgap = Math.max(2, Math.round((17 * DPR) / (total / P.length)));
+    let k = 0;
+    for (let i = 0; i < lim; i += rgap, k++) {
+      const p = P[i], x1 = ax(p), y1 = ay(p), x2 = bx(p), y2 = by(p);
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, al = 0.16 + 0.42 * p.depth;
+      const [a, b] = seq[k % seq.length];
+      ctx.lineWidth = 2.6 * DPR; ctx.lineCap = "round";
+      ctx.strokeStyle = `rgba(${BASE[a]},${al})`;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(mx, my); ctx.stroke();
+      ctx.strokeStyle = `rgba(${BASE[b]},${al})`;
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(x2, y2); ctx.stroke();
     }
   }
 
+  function revealLen() {
+    if (reduce) return total;
+    const max = (document.documentElement.scrollHeight - innerHeight) || 0;
+    const frac = max > 10 ? Math.min(1, Math.max(0, (window.scrollY || 0) / max)) : 1;
+    return total * (0.06 + 0.94 * frac);              // a little showing at the very top
+  }
+  function render() { draw(revealLen()); }
   function onScroll() {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => {
-      phase = (window.scrollY || 0) * 0.014;   // scroll winds the coil
-      draw(); ticking = false;
-    });
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(() => { render(); ticking = false; });
   }
-  window.addEventListener("resize", () => { resize(); draw(); }, { passive: true });
+  window.addEventListener("resize", () => { resize(); render(); }, { passive: true });
   window.addEventListener("scroll", onScroll, { passive: true });
-  resize(); phase = (window.scrollY || 0) * 0.014; draw();
+  resize(); render();
 })();
 
 /* ---- AI diagram: auto-cycle lane highlighting until the user hovers ---- */
