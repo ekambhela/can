@@ -81,9 +81,9 @@
             <a class="btn ghost lg" data-tab="how" href="#how">See how it works</a>
           </div>
           <div class="hero-trust">
-            <span><b id="statTop3">24%</b> top-10 accuracy</span>
+            <span><b id="statTop3">23%</b> top-10 accuracy</span>
             <span class="dot-sep"></span>
-            <span><b id="statSpear">0.34</b> mean rank correlation</span>
+            <span><b id="statSpear">0.38</b> mean rank correlation</span>
             <span class="dot-sep"></span>
             <span><b>real</b> cell-line data</span>
           </div>
@@ -316,8 +316,8 @@
         <div class="stat-band">
           <div class="stat-cell"><b class="count" data-to="988">0</b><span>cancer cell lines</span><small>real GDSC drug screens</small></div>
           <div class="stat-cell"><b class="count" data-to="369">0</b><span>drugs ranked</span><small>GDSC1 + GDSC2 compounds</small></div>
-          <div class="stat-cell"><b class="count" data-to="24" data-suffix="%">0</b><span>top-10 accuracy</span><small>true best drug in the top ten</small></div>
-          <div class="stat-cell"><b class="count" data-to="0.34" data-dec="2">0</b><span>rank correlation</span><small>predicted vs real IC50</small></div>
+          <div class="stat-cell"><b class="count" data-to="23" data-suffix="%">0</b><span>top-10 accuracy</span><small>true best drug in the top ten</small></div>
+          <div class="stat-cell"><b class="count" data-to="0.38" data-dec="2">0</b><span>rank correlation</span><small>predicted vs real IC50</small></div>
         </div>
       </section>
 
@@ -425,7 +425,7 @@
             <div class="flow-ico" style="--c:#1257c4"><svg class="ico"><use href="#ic-ai"/></svg></div>
             <div>
               <h3>2 · Predict drug response</h3>
-              <p>karkive frames this as <b>drug-response prediction</b>: for each of the <em>369</em> drugs, a gradient-boosted model is trained on the real cell lines that were screened against it, predicting how sensitive a profile is (from the drug's measured IC50 values). Modeling each drug on its own screened lines handles the fact that not every drug was tested on every line.</p>
+              <p>karkive frames this as <b>drug-response prediction</b> and blends two gradient-boosted models: a <b>per-drug</b> model trained on each drug's own screened lines, and a <b>multi-task</b> model trained across all <em>369</em> drugs at once, so a drug tested on few lines borrows the pattern from similar drugs. Averaging the two beat either alone on a held-out-by-cell-line test set — the per-drug model calibrates each drug, the multi-task model sharpens the cross-drug ranking.</p>
             </div>
           </article>
           <article class="flow-step">
@@ -536,15 +536,16 @@
 
       <section class="wrap">
         <h2 class="section-title">How well does it do?</h2>
-        <p class="section-sub">Honest numbers, held out on 20% of cell lines. Predicting drug response from a small biomarker panel is genuinely hard.</p>
+        <p class="section-sub">Honest numbers, held out on 20% of cell lines — split <b>by cell line</b> so no line appears in both train and test. Predicting drug response from a small biomarker panel is genuinely hard.</p>
         <div class="metric-grid">
           <div class="mcard"><b>988</b><span>Real cell lines</span></div>
           <div class="mcard"><b>369</b><span>Drugs modeled</span></div>
-          <div class="mcard"><b>~24%</b><span>Top-10 accuracy</span></div>
-          <div class="mcard"><b>0.72</b><span>Best-drug percentile</span></div>
-          <div class="mcard"><b>0.34</b><span>Mean rank correlation</span></div>
+          <div class="mcard"><b>~23%</b><span>Top-10 accuracy</span></div>
+          <div class="mcard"><b>0.75</b><span>Best-drug percentile</span></div>
+          <div class="mcard"><b>0.38</b><span>Mean rank correlation</span></div>
           <div class="mcard"><b>p&lt;10⁻⁶</b><span>BRAF→BRAF-inhibitor</span></div>
         </div>
+        <p class="hint" style="text-align:center;margin-top:14px">Honesty check: when we hold out <b>whole tissue types</b> (a much harder test), rank correlation collapses to <b>~0.07</b>. The model leans heavily on tissue context and doesn't yet extrapolate to tissues it has never seen — a real limitation worth stating plainly.</p>
       </section>
 
       <div class="band note">
@@ -771,7 +772,7 @@
   <footer>
     <div class="foot-inner">
       <span class="foot-brand"><span class="brand-mark"><svg class="mark-ico"><use href="#ic-mark"/></svg></span> karkive</span>
-      <span>Per-drug gradient-boosted models trained on real GDSC cell-line drug response</span>
+      <span>Ensemble of per-drug + multi-task gradient-boosted models on real GDSC cell-line drug response</span>
       <a href="/api/health" target="_blank" rel="noopener">model status</a>
     </div>
   </footer>

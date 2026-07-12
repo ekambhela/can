@@ -22,10 +22,12 @@ def bundle():
 
 
 def test_bundle_has_expected_keys(bundle):
-    for key in ["models", "tissues", "binary_features", "drug_meta",
-                "therapy_class", "resid_std", "metrics", "version", "data"]:
+    for key in ["kind", "model", "per_drug_models", "blend_w_perdrug", "cell_cols",
+                "drug_feat", "cat_levels", "drug_ids", "id_to_name", "name_to_id",
+                "drug_meta", "tissues", "resid_std", "metrics", "version", "data"]:
         assert key in bundle, key
-    assert len(bundle["models"]) >= 3
+    assert bundle["kind"] == "ensemble"
+    assert len(bundle["drug_ids"]) >= 3
     for key in ["mean_r2", "mean_spearman", "top10_accuracy",
                 "best_drug_percentile", "n_drugs", "n_test_lines"]:
         assert key in bundle["metrics"], key
@@ -38,7 +40,7 @@ def test_predict_returns_ranked_results(bundle, monkeypatch):
     sample, _warnings = P.sample_from_dict({"tissue": bundle["tissues"][0], "TP53_mut": 1})
     result = P.predict(sample, top_k=3)
 
-    assert result["recommendation"] in bundle["models"]
+    assert result["recommendation"] in bundle["name_to_id"]
     assert len(result["ranked"]) == 3
     assert result["ranked"][0]["rank"] == 1
     # sensitivities are sorted descending

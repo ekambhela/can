@@ -41,37 +41,49 @@ performance), **How it works** (methodology), the **Matcher** tool, and an
 
 ## How the model works
 
-- Framed as **drug-response prediction**: for each drug, a
-  `HistGradientBoostingRegressor` is trained on the real cell lines screened
-  against it, predicting sensitivity `-z(logIC50)` (higher = more sensitive).
-  Drugs are modeled independently because the screen is sparse (not every drug
-  was tested on every line).
+Framed as **drug-response prediction**, predicting sensitivity `-z(logIC50)`
+(higher = more sensitive). The shipped model is an **ensemble of two
+gradient-boosted models** (`HistGradientBoostingRegressor`):
+
+- a **per-drug** model — one regressor per drug on its own screened lines, which
+  calibrates each drug well; and
+- a **multi-task** model — a single regressor over every observed
+  `(cell line, drug)` pair, with each drug represented by its target pathway,
+  target multi-hot, and a capped drug-identity category. It learns one shared
+  genomic→response mapping across all ~200k pairs, so a drug tested on few lines
+  borrows the pattern from similar drugs.
+
+Their predictions are blended (`0.35·per-drug + 0.65·multi-task`, weight chosen
+on a validation split). The blend beat either model alone on a held-out-by-cell-
+line test set — the two have complementary strengths (per-drug calibration vs
+cross-drug ranking). See [`experiments/RESULTS.md`](experiments/RESULTS.md) for
+the full baseline→ensemble study.
+
 - **Features (curated):** tissue (one-hot), MSI, ERBB2/HER2 amplification, and
   13 driver-gene mutation flags (TP53, KRAS, EGFR, BRAF, ALK, ERBB2, BRCA1/2,
-  PIK3CA, PTEN, NRAS, APC, CDKN2A). A curated set beats the full 680-feature
-  matrix here (which overfits ~800 training lines).
-- **Ranking:** drugs are ordered by predicted sensitivity, shown as a percentile
-  ("more sensitive than X% of cell lines"), with an uncertainty band from
-  held-out residuals and a decision margin vs the runner-up.
-- **Explanations:** the recommended drug's supporting/caution factors are
-  computed by toggling each present feature and measuring the change in predicted
-  sensitivity — a data-driven attribution, not hand-written rules.
+  PIK3CA, PTEN, NRAS, APC, CDKN2A). A curated set beats the full 677-feature
+  genomic matrix here (which overfits the per-drug models) — see the experiments.
+- **No leakage:** the split is **by cell line** (a line is never in both train
+  and test) and the per-drug `-z(logIC50)` scaling is fit on **train lines only**.
+- **Ranking:** drugs are ordered by predicted sensitivity, shown as a percentile,
+  with an uncertainty band from held-out residuals and a decision margin.
+- **Explanations:** supporting/caution factors are computed by toggling each
+  present feature and measuring the change in predicted sensitivity.
 
-### Performance (held-out 20% of cell lines)
+### Performance (held out on 20% of cell lines, split by cell line)
 
-| Metric | Value |
-| --- | --- |
-| Top-10 accuracy (true best drug in top 10 of 369) | **~25%** |
-| Mean percentile rank of the true best drug | **~0.73** |
-| Mean per-drug Spearman (predicted vs real IC50) | **~0.34** |
-| Mean per-drug R² | **~0.16** |
+| Metric | Per-drug baseline | **Ensemble (shipped)** |
+| --- | --- | --- |
+| Top-10 accuracy (true best drug in top 10 of 369) | ~25% | **~23%** |
+| Mean percentile rank of the true best drug | 0.73 | **0.75** |
+| Mean per-drug Spearman (predicted vs real IC50) | 0.34 | **0.38** |
+| Mean per-drug R² | 0.16 | **0.18** |
 
-The per-drug **target scaling (`-z(logIC50)`) is fit on the training split
-only** — computing the mean/std over all cell lines would leak held-out
-statistics into the target. In practice, with ~790 training lines the train-only
-statistics are almost identical to the all-lines statistics, so this only nudged
-R² (0.158 → 0.157); the rank metrics are affine-invariant and unaffected. The
-point is a clean, defensible evaluation, not a bigger number.
+The ensemble improves rank correlation (~+0.05), R², percentile, and top-1/3;
+top-10 is within noise of the baseline. **Honesty check — tissue-blocked CV:**
+when whole tissue types are held out, mean Spearman collapses to **~0.07** (R²
+goes slightly negative). The model relies heavily on tissue context and does
+**not** extrapolate to unseen tissues — a real limitation we state plainly.
 
 These are honest, modest numbers — predicting drug response from a small
 biomarker panel is genuinely hard. What matters is that the model **recovers real
@@ -128,8 +140,8 @@ A portable `Dockerfile` installs dependencies and copies the committed model
 provisions a free Render web service. See the Deploy section notes.
 
 The trained model (`artifacts/model.joblib`) is committed, compressed with
-joblib (`compress=3`, ~7.4 MB) so clones stay light while the container still
-starts instantly. If you'd rather keep the binary out of git history entirely,
+joblib (`compress=3`, ~11 MB — it bundles both ensemble components) so clones
+stay reasonable while the container still starts instantly. If you'd rather keep the binary out of git history entirely,
 track it with **Git LFS** (`git lfs track "artifacts/*.joblib"`) or attach it as
 a GitHub Release asset the Dockerfile pulls at build time. `model.joblib` is a
 Python pickle — only load artifacts you trained yourself (see the security note
@@ -142,10 +154,13 @@ app.py                 FastAPI server (UI + prediction endpoints)
 data/gdsc/             real GDSC1 + GDSC2 matrices + provenance/licensing
 model/
   gdsc.py              load GDSC data, curated feature + drug schema
-  train.py             trains per-drug models on real data, evaluates
-  predict.py           parse → rank → data-driven explanation (single + batch)
-artifacts/model.joblib trained per-drug models (committed, compressed; no boot training)
+  perdrug.py           per-drug HistGBM component of the ensemble
+  mtl.py               multi-task (cell line, drug) component of the ensemble
+  train.py             trains + blends both components, evaluates, saves bundle
+  predict.py           parse → blend → rank → data-driven explanation
+artifacts/model.joblib trained ensemble (committed, compressed; no boot training)
 templates/index.html   single-page UI (Home / Problem / Science / How / Matcher / About)
 static/                style.css, app.js, sample files
 tests/                 pytest: parsing, coercion, leakage regression, train smoke
+experiments/           accuracy study harness + tier runners + RESULTS.md
 ```

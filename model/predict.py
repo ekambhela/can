@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
+from . import mtl, perdrug
 from .gdsc import (
     BINARY_FEATURES,
     ERBB2_AMP,
@@ -188,10 +189,18 @@ def feature_schema() -> dict:
 # ---------------------------------------------------------------------------
 # Prediction
 # ---------------------------------------------------------------------------
-def _row(sample: dict) -> pd.DataFrame:
-    row = {f: float(sample.get(f, 0.0)) for f in BINARY_FEATURES}
-    row["tissue"] = sample.get("tissue", DEFAULT_TISSUE)
-    return pd.DataFrame([row])
+def _score(bundle: dict, sample: dict, drug_ids=None) -> dict:
+    """Blended sensitivity per drug name: w*per-drug + (1-w)*multi-task."""
+    ids = drug_ids if drug_ids is not None else bundle["drug_ids"]
+    w = bundle.get("blend_w_perdrug", 0.35)
+    mt = mtl.score_sample(bundle, sample, drug_ids=ids)
+    pd_scores = perdrug.score_sample(bundle["per_drug_models"], sample,
+                                     bundle["cell_cols"], ids, bundle["id_to_name"])
+    out = {}
+    for n in set(mt) | set(pd_scores):
+        a, b = pd_scores.get(n), mt.get(n)
+        out[n] = a if b is None else (b if a is None else w * a + (1 - w) * b)
+    return out
 
 
 def _pct(z: float) -> float:
@@ -219,18 +228,18 @@ def _confidence(zs: np.ndarray, resid_top: float = 0.6) -> float:
     return float(np.clip(norm.cdf(z), 0.01, 0.99))
 
 
-def _explain(sample: dict, therapy: str, models: dict) -> dict:
+def _explain(sample: dict, therapy: str, bundle: dict) -> dict:
     """Data-driven attribution: effect of each present feature on this drug's
     predicted sensitivity, by toggling it off and measuring the change."""
-    model = models[therapy]
-    base = float(model.predict(_row(sample))[0])
+    did = bundle["name_to_id"][therapy]
+    base = _score(bundle, sample, drug_ids=[did])[therapy]
     supporting, cautions = [], []
     for f in MUTATION_FEATURES + [ERBB2_AMP, MSI]:
         if float(sample.get(f, 0)) < 0.5:
             continue
         off = dict(sample)
         off[f] = 0.0
-        eff_pct = _pct(base) - _pct(float(model.predict(_row(off))[0]))
+        eff_pct = _pct(base) - _pct(_score(bundle, off, drug_ids=[did])[therapy])
         if abs(eff_pct) < 1.5:
             continue
         item = {"feature": f, "label": FEATURE_LABEL.get(f, f),
@@ -247,13 +256,11 @@ def _explain(sample: dict, therapy: str, models: dict) -> dict:
 
 def predict(sample: dict, top_k: int | None = 8) -> dict:
     bundle = load_bundle()
-    models = bundle["models"]
     meta = bundle["drug_meta"]
     resid = bundle.get("resid_std", {})
-    names = list(models.keys())
 
-    X = _row(sample)
-    zs = {n: float(models[n].predict(X)[0]) for n in names}
+    zs = _score(bundle, sample)   # {drug_name: blended sensitivity}
+    names = list(zs.keys())
     order = sorted(names, key=lambda n: zs[n], reverse=True)
     if top_k:
         order = order[:top_k]
@@ -265,7 +272,7 @@ def predict(sample: dict, top_k: int | None = 8) -> dict:
     ranked = []
     for rank, n in enumerate(order, start=1):
         rs = resid.get(n, 0.6)
-        exp = _explain(sample, n, models)
+        exp = _explain(sample, n, bundle)
         ranked.append({
             "rank": rank, "therapy": n, "drug_class": meta.get(n, {}).get("target", ""),
             "sensitivity": round(zs[n], 4),
@@ -286,17 +293,14 @@ def predict(sample: dict, top_k: int | None = 8) -> dict:
 
 def predict_batch(samples: list[dict]) -> dict:
     bundle = load_bundle()
-    models = bundle["models"]
     meta = bundle["drug_meta"]
     resid = bundle.get("resid_std", {})
-    names = list(models.keys())
-    X = pd.concat([_row(s) for s in samples], ignore_index=True)
-    Z = {n: models[n].predict(X) for n in names}
+    names = [bundle["id_to_name"][d] for d in bundle["drug_ids"]]
 
     rows = []
     for i, s in enumerate(samples):
-        zs = {n: float(Z[n][i]) for n in names}
-        order = sorted(names, key=lambda n: zs[n], reverse=True)
+        zs = _score(bundle, s)
+        order = sorted(zs, key=lambda n: zs[n], reverse=True)
         top, second = order[0], order[1]
         pcts = {n: _pct(zs[n]) for n in names}
         rows.append({
