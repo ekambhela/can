@@ -32,6 +32,7 @@ from .gdsc import (
     TISSUE_LABELS,
     feature_schema as _schema,
 )
+from .train import summary_metrics
 
 ARTIFACTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "artifacts")
 MODEL_PATH = os.path.join(ARTIFACTS, "model.joblib")
@@ -53,7 +54,20 @@ def load_bundle() -> dict:
         from .train import main as train_main
         train_main()
     import joblib
+    # SECURITY: joblib.load unpickles arbitrary Python objects, so only ever load
+    # model.joblib artifacts we produced ourselves (see model/train.py). Never
+    # point MODEL_PATH at an untrusted file — a malicious pickle can run code.
     return joblib.load(MODEL_PATH)
+
+
+def api_metrics() -> dict:
+    """Summary metrics only (no 369-entry per-drug dicts) — for API payloads."""
+    return summary_metrics(load_bundle().get("metrics", {}))
+
+
+def full_metrics() -> dict:
+    """Complete metrics incl. per-drug R^2 / Spearman — for the /api/metrics route."""
+    return load_bundle().get("metrics", {})
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +202,7 @@ def _confidence(zs: np.ndarray, resid_top: float = 0.6) -> float:
     """How clearly the top pick separates from its *closest rivals* — the next
     few best drugs — relative to the model's own prediction noise.
 
-    Measuring against the whole 264-drug panel is useless: the best drug is
+    Measuring against the whole drug panel is useless: the best drug is
     always many std above the panel mean, so that saturates at ~1.0 for every
     sample. What actually matters is whether #1 stands apart from the handful of
     near-ties just behind it. We take the gap between the top drug and the mean
@@ -266,7 +280,7 @@ def predict(sample: dict, top_k: int | None = 8) -> dict:
         "confidence": round(confidence, 4),
         "decision_margin": margin,
         "ranked": ranked,
-        "model_metrics": bundle.get("metrics", {}),
+        "model_metrics": summary_metrics(bundle.get("metrics", {})),
     }
 
 
@@ -295,4 +309,4 @@ def predict_batch(samples: list[dict]) -> dict:
             "runner_up": second, "runner_up_percent": round(pcts[second], 1),
         })
     return {"n": len(rows), "therapies": names, "rows": rows,
-            "model_metrics": bundle.get("metrics", {})}
+            "model_metrics": summary_metrics(bundle.get("metrics", {}))}

@@ -13,14 +13,18 @@ or:
 
 from __future__ import annotations
 
+import logging
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import Body, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from model.predict import (
+    api_metrics,
     feature_schema,
+    full_metrics,
     load_bundle,
     parse_cohort,
     parse_sample,
@@ -30,21 +34,42 @@ from model.predict import (
 )
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-
-app = FastAPI(title="Karkive", version="1.1.0")
-app.mount("/static", StaticFiles(directory=os.path.join(BASE, "static")), name="static")
+log = logging.getLogger("karkive.app")
 
 MAX_BYTES = 2 * 1024 * 1024  # 2 MB upload cap
 MAX_COHORT_ROWS = 500        # cap batch size to keep responses snappy
 
 
-@app.on_event("startup")
-def _prewarm() -> None:
-    """Train/load the model at boot so the first user request is fast."""
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Train/load the model at boot so the first user request is fast.
+
+    Replaces the deprecated @app.on_event("startup") hook with FastAPI's
+    lifespan context manager (the supported API since Starlette 0.26).
+    """
     try:
         load_bundle()
     except Exception as exc:  # noqa: BLE001 — log and continue; /api/health reports it
-        print(f"[startup] model not ready: {exc}")
+        log.warning("model not ready at startup: %s", exc)
+    yield
+
+
+app = FastAPI(title="Karkive", version="1.2.0", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=os.path.join(BASE, "static")), name="static")
+
+
+async def read_upload(file: UploadFile) -> bytes:
+    """Read an uploaded file, rejecting empty or oversized payloads.
+
+    Shared by /api/predict and /api/predict_batch so the size/emptiness policy
+    lives in exactly one place.
+    """
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if len(raw) > MAX_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 2 MB).")
+    return raw
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -78,21 +103,28 @@ async def api_predict_form(payload: dict = Body(...)) -> JSONResponse:
 
 @app.get("/api/health")
 def health() -> dict:
+    """Liveness + summary metrics. Render polls this frequently, so it returns
+    only the small summary — the 369-entry per-drug dicts live at /api/metrics."""
     try:
         bundle = load_bundle()
         return {"status": "ok", "model_version": bundle.get("version"),
-                "metrics": bundle.get("metrics", {})}
+                "metrics": api_metrics()}
+    except FileNotFoundError as exc:
+        return JSONResponse(status_code=503, content={"status": "no_model", "detail": str(exc)})
+
+
+@app.get("/api/metrics")
+def metrics() -> dict:
+    """Full evaluation metrics, including per-drug R^2 / Spearman (large)."""
+    try:
+        return full_metrics()
     except FileNotFoundError as exc:
         return JSONResponse(status_code=503, content={"status": "no_model", "detail": str(exc)})
 
 
 @app.post("/api/predict")
 async def api_predict(file: UploadFile = File(...)) -> JSONResponse:
-    raw = await file.read()
-    if not raw:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
-    if len(raw) > MAX_BYTES:
-        raise HTTPException(status_code=413, detail="File too large (max 2 MB).")
+    raw = await read_upload(file)
 
     try:
         sample, warnings = parse_sample(raw, file.filename or "")
@@ -114,11 +146,7 @@ async def api_predict(file: UploadFile = File(...)) -> JSONResponse:
 @app.post("/api/predict_batch")
 async def api_predict_batch(file: UploadFile = File(...)) -> JSONResponse:
     """Rank therapies for a whole cohort (one tumor per row)."""
-    raw = await file.read()
-    if not raw:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
-    if len(raw) > MAX_BYTES:
-        raise HTTPException(status_code=413, detail="File too large (max 2 MB).")
+    raw = await read_upload(file)
 
     try:
         samples, warnings = parse_cohort(raw, file.filename or "")
