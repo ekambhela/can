@@ -553,9 +553,12 @@ html.js .section-title, html.js .about-h, html.js .page-head h1 {
 .about-h { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 3.4vw, 36px); margin: 10px 0 16px; letter-spacing: -.02em; }
 .about-body p { font-size: 16.5px; color: var(--ink-2); margin: 0 0 16px; line-height: 1.72; }
 .about-body p:first-of-type::first-letter {
-  font-family: var(--display); font-weight: 800; color: var(--primary);
-  -webkit-initial-letter: 2 2; initial-letter: 2 2;   /* 2-line drop cap, browser-aligned */
-  margin-right: 12px;
+  font-family: var(--display); font-weight: 800; color: #fff;
+  float: left; line-height: 62px; text-align: center;
+  width: 62px; height: 62px; font-size: 42px;
+  margin: 4px 14px 2px 0; border-radius: 14px;
+  background: linear-gradient(135deg, var(--primary), var(--teal));
+  box-shadow: 0 6px 16px rgba(79,70,229,.28);
 }
 
 /* ============ MATCHING DIAGRAM ============ */
