@@ -1,8 +1,12 @@
-fastapi>=0.110
-uvicorn[standard]>=0.27
-python-multipart>=0.0.9
-scikit-learn>=1.4
-scipy>=1.11
-pandas>=2.0
-numpy>=1.24
-joblib>=1.3
+# Runtime dependencies — pinned for reproducible builds and, crucially, so the
+# committed artifacts/model.joblib pickle is unpickled by the SAME scikit-learn /
+# numpy versions it was trained with (mismatched versions can break pickle load).
+# Regenerate by retraining (python -m model.train) after any bump here.
+fastapi==0.138.1
+uvicorn[standard]==0.49.0
+python-multipart==0.0.32
+scikit-learn==1.9.0
+scipy==1.17.1
+pandas==3.0.3
+numpy==2.4.6
+joblib==1.5.3

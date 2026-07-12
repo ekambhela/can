@@ -1,0 +1,10 @@
+# Ruff config. Default rule set (pyflakes F + a subset of pycodestyle E) — we
+# deliberately don't enable line-length (E501) to avoid churn on the existing
+# code. See https://docs.astral.sh/ruff/.
+target-version = "py311"
+line-length = 100
+
+[lint]
+# Keep the sensible defaults; ignore module-import-position only inside __init__
+# style files if needed. Nothing extra enabled for now.
+extend-select = []
