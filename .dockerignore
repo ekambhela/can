@@ -9,3 +9,13 @@ artifacts/dataset_*.csv
 .server.log
 *.log
 docs/
+
+# Dev-only files not needed in the runtime image
+tests/
+conftest.py
+requirements-dev.txt
+.github/
+.ruff.toml
+LICENSE
+*.md
+data/gdsc/*.md

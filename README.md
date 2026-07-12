@@ -6,10 +6,11 @@ Sensitivity in Cancer) cell-line data**. Enter a profile (tissue, driver
 mutations, HER2 amplification, MSI) and the model ranks a panel of drugs by
 predicted sensitivity and shows the biomarkers behind each match.
 
-The single-page site has four tabs — a content-rich **Home** (mission, vision,
-animated stats), **How it works** (methodology), **The science** (therapy panel,
-data-derived biomarker associations, honest performance), and the **Matcher**
-tool — in a light theme with custom graphics.
+The single-page site has tabs for a content-rich **Home** (mission, vision,
+animated stats), **The problem** (why one-size-fits-all chemo falls short),
+**The science** (therapy panel, data-derived biomarker associations, honest
+performance), **How it works** (methodology), the **Matcher** tool, and an
+**About** page — in a light theme with custom graphics.
 
 > ⚠️ **Research / educational use only.** GDSC measures drug response in cultured
 > cancer **cell lines**, not patients. These signals are useful for research but
@@ -23,9 +24,10 @@ tool — in a light theme with custom graphics.
   in the official Sanger `gdsctools` package, BSD-3) and **GDSC2** (25 Feb 2020
   fitted-dose-response, redistributed via the public DeepTTC repo). Files live in
   [`data/gdsc/`](data/gdsc/).
-- **IC50 matrix:** 988 human cancer cell lines × 265 GDSC1 compounds, plus the
-  GDSC2 assay for the 806 of those lines it also tested (natural-log IC50). Both
-  screens key on the same `COSMIC_ID`, so GDSC2 joins onto the same features.
+- **IC50 matrix:** 988 human cancer cell lines × 265 screened GDSC1 drug columns
+  (264 named), plus the GDSC2 assay for the 806 of those lines it also tested
+  (natural-log IC50). Both screens key on the same `COSMIC_ID`, so GDSC2 joins
+  onto the same features.
 - **Genomic features:** per cell line — tissue of origin, MSI status, driver-gene
   mutation flags, and copy-number alterations (incl. ERBB2/HER2 amplification).
 - **Drug panel:** **369** distinct compounds — **248** from GDSC1 (264 named,
@@ -59,10 +61,17 @@ tool — in a light theme with custom graphics.
 
 | Metric | Value |
 | --- | --- |
-| Top-10 accuracy (true best drug in top 10 of 369) | **~24%** |
-| Mean percentile rank of the true best drug | **~0.72** |
+| Top-10 accuracy (true best drug in top 10 of 369) | **~25%** |
+| Mean percentile rank of the true best drug | **~0.73** |
 | Mean per-drug Spearman (predicted vs real IC50) | **~0.34** |
 | Mean per-drug R² | **~0.16** |
+
+The per-drug **target scaling (`-z(logIC50)`) is fit on the training split
+only** — computing the mean/std over all cell lines would leak held-out
+statistics into the target. In practice, with ~790 training lines the train-only
+statistics are almost identical to the all-lines statistics, so this only nudged
+R² (0.158 → 0.157); the rank metrics are affine-invariant and unaffected. The
+point is a clean, defensible evaluation, not a bigger number.
 
 These are honest, modest numbers — predicting drug response from a small
 biomarker panel is genuinely hard. What matters is that the model **recovers real
@@ -105,7 +114,8 @@ python -m model.train
 ### API
 
 - `GET  /` — the web UI
-- `GET  /api/health` — model status + metrics
+- `GET  /api/health` — model status + **summary** metrics (small; safe to poll)
+- `GET  /api/metrics` — full metrics incl. per-drug R²/Spearman (large)
 - `GET  /api/schema` — input-field schema (drives the manual-entry form)
 - `POST /api/predict` — single sample file → ranked JSON with attribution
 - `POST /api/predict_form` — JSON body `{tissue, <feature>: value, …}` → ranked JSON
@@ -117,16 +127,25 @@ A portable `Dockerfile` installs dependencies and copies the committed model
 (no training at build or boot), serving on `$PORT`. A `render.yaml` blueprint
 provisions a free Render web service. See the Deploy section notes.
 
+The trained model (`artifacts/model.joblib`) is committed, compressed with
+joblib (`compress=3`, ~7.4 MB) so clones stay light while the container still
+starts instantly. If you'd rather keep the binary out of git history entirely,
+track it with **Git LFS** (`git lfs track "artifacts/*.joblib"`) or attach it as
+a GitHub Release asset the Dockerfile pulls at build time. `model.joblib` is a
+Python pickle — only load artifacts you trained yourself (see the security note
+in `model/predict.py`).
+
 ## Project layout
 
 ```
 app.py                 FastAPI server (UI + prediction endpoints)
-data/gdsc/             real GDSC release-17 matrices + provenance
+data/gdsc/             real GDSC1 + GDSC2 matrices + provenance/licensing
 model/
   gdsc.py              load GDSC data, curated feature + drug schema
   train.py             trains per-drug models on real data, evaluates
   predict.py           parse → rank → data-driven explanation (single + batch)
-artifacts/model.joblib trained per-drug models (committed; no training at boot)
-templates/index.html   single-page UI (Home / How / Science / Matcher)
+artifacts/model.joblib trained per-drug models (committed, compressed; no boot training)
+templates/index.html   single-page UI (Home / Problem / Science / How / Matcher / About)
 static/                style.css, app.js, sample files
+tests/                 pytest: parsing, coercion, leakage regression, train smoke
 ```
