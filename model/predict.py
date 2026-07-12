@@ -255,6 +255,19 @@ def _explain(sample: dict, therapy: str, bundle: dict) -> dict:
 
 
 def predict(sample: dict, top_k: int | None = 8) -> dict:
+    """Rank drugs for a tumor profile. Results are cached per (bundle, sample) so
+    repeated/identical inputs — e.g. the built-in example files — are instant."""
+    items = tuple(sorted(sample.items()))
+    # id(bundle) keys the cache to the loaded model, so a reload invalidates it.
+    return dict(_predict_cached(id(load_bundle()), items, top_k))
+
+
+@lru_cache(maxsize=2048)
+def _predict_cached(_bundle_id: int, items: tuple, top_k: int | None) -> dict:
+    return _predict_impl(dict(items), top_k)
+
+
+def _predict_impl(sample: dict, top_k: int | None = 8) -> dict:
     bundle = load_bundle()
     meta = bundle["drug_meta"]
     resid = bundle.get("resid_std", {})

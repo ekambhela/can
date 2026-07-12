@@ -454,8 +454,9 @@ document.querySelectorAll(".chip.run").forEach((a) => {
 (function heroTicker() {
   const el = document.getElementById("rotEx");
   if (!el) return;
-  const items = ["BRAF melanoma → Dabrafenib", "EGFR lung → Gefitinib",
-                 "HER2 breast → Afatinib", "MET-driven tumor → Crizotinib"];
+  const items = ["BRAF melanoma → Dabrafenib", "EGFR lung → Afatinib",
+                 "PIK3CA breast → Alpelisib", "KRAS pancreas → Trametinib",
+                 "NRAS melanoma → Trametinib", "HER2 breast → Afatinib"];
   let i = 0;
   setInterval(() => {
     i = (i + 1) % items.length;

@@ -40,15 +40,45 @@ MAX_BYTES = 2 * 1024 * 1024  # 2 MB upload cap
 MAX_COHORT_ROWS = 500        # cap batch size to keep responses snappy
 
 
+SAMPLES_DIR = os.path.join(BASE, "static", "samples")
+
+
+def _warm_examples() -> None:
+    """Pre-compute (and cache) predictions for the built-in example files so the
+    very first click on an example returns instantly, not in a few seconds."""
+    import glob
+
+    for path in sorted(glob.glob(os.path.join(SAMPLES_DIR, "*.csv"))
+                       + glob.glob(os.path.join(SAMPLES_DIR, "*.json"))):
+        name = os.path.basename(path)
+        try:
+            with open(path, "rb") as fh:
+                raw = fh.read()
+            if "cohort" in name.lower():
+                samples, _ = parse_cohort(raw, name)
+                predict_batch(samples)
+            else:
+                sample, _ = parse_sample(raw, name)
+                predict(sample)
+        except Exception as exc:  # noqa: BLE001 — warming is best-effort
+            log.warning("could not warm example %s: %s", name, exc)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """Train/load the model at boot so the first user request is fast.
+    """Load the model at boot (so the first request is fast) and pre-warm the
+    example files in the background (so their first click is instant, without
+    delaying startup or the health check).
 
     Replaces the deprecated @app.on_event("startup") hook with FastAPI's
     lifespan context manager (the supported API since Starlette 0.26).
     """
+    import threading
+
     try:
         load_bundle()
+        # warm examples off the startup path; lru_cache is thread-safe.
+        threading.Thread(target=_warm_examples, name="warm-examples", daemon=True).start()
     except Exception as exc:  # noqa: BLE001 — log and continue; /api/health reports it
         log.warning("model not ready at startup: %s", exc)
     yield
