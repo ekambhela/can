@@ -16,8 +16,8 @@ demonstration of pharmacogenomic drug-response modeling, not a clinical tool.
 from __future__ import annotations
 
 import os
+import re as _re
 
-import numpy as np
 import pandas as pd
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "gdsc")
@@ -44,9 +44,6 @@ BINARY_FEATURES = MUTATION_FEATURES + [ERBB2_AMP, MSI]
 # GDSC "screened compounds" table, validated against the authoritative GDSC
 # database export bundled in gdsctools (9/9 anchor IDs match exactly).
 # See data/gdsc/README.md.
-import re as _re
-
-
 def _load_drugs() -> tuple[dict, dict]:
     """Collapse the v17 drug columns to one clean entry per *compound*.
 
@@ -143,10 +140,17 @@ FEATURE_LABEL = {
 
 
 def load_frame() -> tuple[pd.DataFrame, dict, list[str]]:
-    """Return (features_df, {drug_col: sensitivity_series}, tissue_categories).
+    """Return (features_df, {drug_col: raw_logIC50_series}, tissue_categories).
 
     Features: one row per cell line with BINARY_FEATURES + a `tissue` column.
-    Target per drug: -z(logIC50) so higher = more sensitive; NaN where untested.
+    Target per drug: the **raw** replicate-averaged natural-log IC50 (lower =
+    more sensitive), NaN where untested.
+
+    NOTE: no normalization happens here. Converting IC50 to the model's
+    sensitivity target (`-z(logIC50)`) requires a mean/std, and fitting those on
+    every cell line — including the ones train.py later holds out for testing —
+    would leak test-set statistics into training. The z-scoring is therefore
+    done in train.py using *train-split* statistics only. See train.py.
     """
     ic = pd.read_csv(os.path.join(DATA_DIR, "IC50_v17.csv.gz"))
     gf = pd.read_csv(os.path.join(DATA_DIR, "genomic_features_v17.csv.gz"))
@@ -166,13 +170,13 @@ def load_frame() -> tuple[pd.DataFrame, dict, list[str]]:
 
     targets = {}
     for cid, col in DRUG_COL.items():
-        # average all replicate screens of this compound (z-scored per screen so
-        # the two batches are on the same scale), ignoring NaNs.
-        zcols = []
-        for sid in DRUG_SOURCE[cid]:
-            v = df[f"Drug_{sid}_IC50"].astype(float)
-            zcols.append(-(v - v.mean()) / v.std())
-        targets[col] = pd.concat(zcols, axis=1).mean(axis=1)   # NaN only where all screens missing
+        # Average the compound's replicate screens on the raw log-IC50 scale
+        # (all GDSC screens report IC50 in the same natural-log µM units, so this
+        # is a like-for-like average), ignoring NaNs. Normalization is deferred
+        # to train.py so it can be fit on train lines only.
+        raw = pd.concat([df[f"Drug_{sid}_IC50"].astype(float)
+                         for sid in DRUG_SOURCE[cid]], axis=1)
+        targets[col] = raw.mean(axis=1)   # NaN only where all screens missing
 
     tissues = sorted(df["TISSUE_FACTOR"].astype(str).unique().tolist())
     return feats, targets, tissues
