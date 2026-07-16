@@ -1,5 +1,6 @@
 # Development / CI tooling (not needed to run the app).
 -r requirements.txt
 pytest==9.1.1
+httpx==0.28.1    # FastAPI TestClient transport (tests/test_api.py)
 ruff==0.15.8
 Pillow==12.3.0   # used only by the one-off static/creator.jpg resize step
