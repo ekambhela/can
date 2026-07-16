@@ -87,10 +87,48 @@ The best-predicted are exactly the biomarker-driven classes —
 (Doxorubicin, Erlotinib) are near-random. The model recovers real biology, and
 the ranked list is most trustworthy for targeted agents.
 
+## Tier 5: gene-expression features (the biggest lever)
+
+Mutation flags are a thin view of a tumor. We added a **706-gene census
+expression matrix** (CCLE/GDSC, reduced with train-only PCA) and, for a fair
+test, restricted to the **577 / 988 lines that have expression**, splitting those
+by cell line and comparing curated-only vs curated+expression on the same lines.
+Reproduce: `python -m experiments.run_expression`.
+
+| TEST (577-covered lines) | Spearman | R² | top1 | top3 | top10 | pct |
+|---|---|---|---|---|---|---|
+| baseline ensemble (mutations+tissue) | 0.346 | 0.119 | 0.052 | 0.112 | 0.181 | 0.677 |
+| **+ expression** | **0.445** | **0.202** | **0.069** | **0.172** | **0.215** | **0.717** |
+
+| TISSUE-BLOCKED (whole tissues held out) | Spearman | R² |
+|---|---|---|
+| baseline ensemble | 0.102 | −0.065 |
+| **+ expression** | **0.262** | **+0.023** |
+
+- **Expression is the single strongest lever in the whole study** — Spearman
+  0.346 → 0.445 (~29% relative), R² 0.119 → 0.202, and gains on every ranking
+  metric. Exactly what the GDSC literature predicts: transcriptome > mutations.
+- **It attacks the real weakness.** Tissue-blocked Spearman **more than doubled**
+  (0.10 → 0.26) and R² went from negative to positive: expression captures cell
+  *state* beyond the tissue label, so the model stops leaning on tissue identity.
+- Raw 706 genes narrowly beat PCA-50 in the multi-task model (which has the data
+  to use them); the small per-drug models still need the PCA reduction.
+
+**Production catch:** the live matcher's inputs are *mutations + tissue* — a user
+describing their tumor does not supply a 706-gene RNA-seq vector. So expression
+can't silently replace the shipped model; realizing this gain in the app means
+adding an **optional "upload an expression profile" input** (power users with
+RNA-seq get the sharper, better-calibrated prediction; everyone else is
+unchanged, since the tree model treats absent expression as missing). That is a
+deliberate product step, not an automatic swap.
+
 ## Bottom line
 
-Rank correlation improved **~14%** (0.34 → 0.38) with a clean, leakage-free,
-split-by-cell-line evaluation, driven by (1) a multi-task model that borrows
-strength across drugs and (2) ensembling it with the per-drug baseline. The big
-caveat, stated plainly: hold out **whole tissues** and performance collapses —
-the model leans on tissue context and does not yet extrapolate to unseen tissues.
+On the mutation+tissue inputs the app actually uses, the ensemble reaches
+Spearman **~0.38** with a clean, leakage-free, split-by-cell-line evaluation.
+The clearest path to more accuracy is **richer data, not a fancier model**:
+adding gene expression lifts Spearman to **~0.45** and — most importantly — more
+than doubles tissue-blocked generalization (0.10 → 0.26), directly easing the
+limitation that the model otherwise leans on tissue identity. The catch is that
+expression is a different input modality, so capturing it in production requires
+letting users supply an expression profile.

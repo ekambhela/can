@@ -80,8 +80,9 @@ def main():
     _, me = mt_eval(cur + gene_cols, va); print(fmt("E curated+expr(raw706)", me))
 
     # choose expression variant by VAL spearman; ensemble on TEST
-    best_cols = cur + (gene_cols if me["mean_spearman"] >= md["mean_spearman"] else pc_cols)
-    print(f"\nchosen MT expr variant: {'raw706' if best_cols is cur+gene_cols else 'PCA50'}")
+    use_raw = me["mean_spearman"] >= md["mean_spearman"]
+    best_cols = cur + (gene_cols if use_raw else pc_cols)
+    print(f"\nchosen MT expr variant: {'raw706' if use_raw else 'PCA50'}")
 
     print("\n--- TEST: baseline (curated) vs expression, per-drug / MT / ensemble ---")
     base_pd = run_perdrug(U, tr, te, cur, truth=truth)
