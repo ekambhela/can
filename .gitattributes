@@ -1,0 +1,15 @@
+# The trained model binary (artifacts/*.joblib) is NOT committed by default — it
+# is rebuilt from the committed GDSC data (`python -m model.train`). See AUDIT.md
+# item 3 and .gitignore.
+#
+# If your team would rather VERSION the binary instead of rebuilding it, use Git
+# LFS: uncomment the line below, remove `artifacts/*.joblib` from .gitignore, run
+#     git lfs install && git lfs track "artifacts/*.joblib"
+# and commit. LFS keeps the pointer in git and the blob off the main history.
+#
+# artifacts/*.joblib filter=lfs diff=lfs merge=lfs -text
+
+# Keep line endings sane for text assets.
+*.py   text eol=lf
+*.md   text eol=lf
+*.csv  text eol=lf

@@ -12,9 +12,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# App source, including the pre-trained model in artifacts/. No training runs
-# at build or boot, so the image builds fast and the container starts in seconds.
+# App source (the model binary is not committed — see AUDIT.md item 3).
 COPY . .
+
+# Build the model from the committed GDSC data at IMAGE-BUILD time. Training
+# happens once here, not at boot, so the container still starts in seconds and
+# no multi-MB binary needs to live in git history.
+RUN python -m model.train
 
 EXPOSE 8000
 

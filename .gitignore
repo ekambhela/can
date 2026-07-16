@@ -5,8 +5,14 @@ __pycache__/
 venv/
 .env
 
-# The trained model is committed (artifacts/model.joblib, metrics.json) so the
-# Docker image needs no training step. Only the regenerable datasets are ignored.
+# The trained model binary is a BUILD/RUNTIME artifact, not source — it is no
+# longer committed (it bloated history with multi-MB blobs on every retrain).
+# It is rebuilt from the committed GDSC data by `python -m model.train`
+# (see the Dockerfile build step, `make model`, and scripts/get_model.py).
+# metrics.json is kept (tiny, human-readable record of the last run).
+# If you'd rather VERSION the binary, see .gitattributes (Git LFS) and remove it
+# from this ignore list.
+artifacts/*.joblib
 artifacts/dataset_*.csv
 
 # OS / editor

@@ -115,13 +115,20 @@ Or JSON: `{ "tissue": "breast", "ERBB2_amp": 1, "TP53_mut": 1 }`. Examples live 
 ```bash
 pip install -r requirements.txt
 
-# start the web app (a pre-trained model is committed, so it loads instantly)
+# build the model from the committed GDSC data (seeded, ~a few minutes).
+# The binary is NOT committed to git — see AUDIT.md item 3.
+python -m model.train        # or: make model  /  python scripts/get_model.py
+
+# start the web app
 uvicorn app:app --reload
 # open http://localhost:8000
-
-# (optional) retrain on the GDSC data, then commit the refreshed artifacts/
-python -m model.train
 ```
+
+If you skip the build step, the app trains the model automatically on the first
+request (`load_bundle()` falls back to training when `artifacts/model.joblib` is
+absent), so `uvicorn app:app` works from a clean clone — the first request is
+just slower. `make help` lists the one-command workflows
+(`setup` / `model` / `test` / `benchmark` / `run`).
 
 ### API
 
@@ -135,17 +142,19 @@ python -m model.train
 
 ## Deploy (public URL)
 
-A portable `Dockerfile` installs dependencies and copies the committed model
-(no training at build or boot), serving on `$PORT`. A `render.yaml` blueprint
-provisions a free Render web service. See the Deploy section notes.
+A portable `Dockerfile` installs dependencies and **builds the model from the
+committed GDSC data at image-build time** (`RUN python -m model.train`), then
+serves on `$PORT`. Training happens once at build, not at boot, so the container
+still starts in seconds — and no multi-MB binary lives in git history. A
+`render.yaml` blueprint provisions a free Render web service.
 
-The trained model (`artifacts/model.joblib`) is committed, compressed with
-joblib (`compress=3`, ~11 MB — it bundles both ensemble components) so clones
-stay reasonable while the container still starts instantly. If you'd rather keep the binary out of git history entirely,
-track it with **Git LFS** (`git lfs track "artifacts/*.joblib"`) or attach it as
-a GitHub Release asset the Dockerfile pulls at build time. `model.joblib` is a
-Python pickle — only load artifacts you trained yourself (see the security note
-in `model/predict.py`).
+The trained model (`artifacts/model.joblib`, ~11 MB, both ensemble components,
+joblib `compress=3`) is a **build/runtime artifact and is not committed** — it
+bloated history with a fresh multi-MB blob on every retrain (see AUDIT.md item
+3). Rebuild it with `make model`, or, to *version* it instead, use Git LFS (see
+`.gitattributes`), or set `MODEL_URL` and let `scripts/get_model.py` pull a
+released asset. `model.joblib` is a Python pickle — only load artifacts you
+trained yourself (see the security note in `model/predict.py`).
 
 ## Project layout
 
@@ -158,7 +167,7 @@ model/
   mtl.py               multi-task (cell line, drug) component of the ensemble
   train.py             trains + blends both components, evaluates, saves bundle
   predict.py           parse → blend → rank → data-driven explanation
-artifacts/model.joblib trained ensemble (committed, compressed; no boot training)
+artifacts/model.joblib trained ensemble (built from data, not committed; see AUDIT.md)
 templates/index.html   single-page UI (Home / Problem / Science / How / Matcher / About)
 static/                style.css, app.js, sample files
 tests/                 pytest: parsing, coercion, leakage regression, train smoke
