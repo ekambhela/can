@@ -552,10 +552,11 @@ html.js .section-title, html.js .about-h, html.js .page-head h1 {
 .about-body .eyebrow { margin-bottom: 12px; }
 .about-h { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 3.4vw, 36px); margin: 10px 0 16px; letter-spacing: -.02em; }
 .about-body p { font-size: 16.5px; color: var(--ink-2); margin: 0 0 16px; line-height: 1.72; }
-.about-body p:first-of-type::first-letter {
+.about-body .dropcap {
+  float: left; display: flex; align-items: center;   /* flex-center the glyph against the 2-line block */
   font-family: var(--display); font-weight: 800; color: var(--primary);
-  float: left; font-size: 66px; line-height: 54px;
-  padding: 4px 12px 0 0;
+  font-size: 3.34em; line-height: 1; height: .9em;
+  margin: .06em .14em 0 0;
 }
 
 /* ============ MATCHING DIAGRAM ============ */
