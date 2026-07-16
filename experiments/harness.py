@@ -79,8 +79,47 @@ def load_universe() -> dict:
         "feats": feats, "curated": curated, "full_bin": full_bin,
         "tissue_vals": sorted(df["TISSUE_FACTOR"].astype(str).unique().tolist()),
         "targets_raw": targets_raw, "tissue_arr": df["TISSUE_FACTOR"].astype(str).to_numpy(),
+        "cosmic_arr": df["COSMIC_ID"].astype(int).to_numpy(),
         "drug_ids": list(DRUGS.keys()), "n": n,
     }
+
+
+# ---------------------------------------------------------------------------
+# Gene-expression features (optional add-on; see run_expression.py)
+# ---------------------------------------------------------------------------
+EXPR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "expr_cosmic.csv.gz")
+
+
+def load_expression(cosmic_arr):
+    """Return an (n x 706) expression DataFrame aligned to the universe row order,
+    NaN where a line has no expression, plus a boolean mask of covered rows."""
+    expr = pd.read_csv(EXPR_PATH, index_col=0)
+    expr.index = expr.index.astype(int)
+    aligned = expr.reindex(cosmic_arr).reset_index(drop=True)
+    aligned.columns = list(expr.columns)
+    mask = aligned.notna().any(axis=1).to_numpy()
+    return aligned.astype(np.float32), mask
+
+
+def expression_pca(expr_df, train_idx, k=50):
+    """Fit standardization + PCA on TRAIN rows only, transform all rows.
+
+    706 raw genes overfit the small per-drug models (like the 677 mutation flags
+    did), so we compress to k principal components. Fitting on train only keeps
+    the reduction leakage-free. Returns a DataFrame of pc columns (NaN rows stay
+    NaN so tree models treat them as missing)."""
+    from sklearn.decomposition import PCA
+    from sklearn.preprocessing import StandardScaler
+
+    X = expr_df.to_numpy(dtype=np.float32)
+    row_ok = ~np.isnan(X).any(axis=1)
+    tr_ok = np.array([i for i in train_idx if row_ok[i]])
+    scaler = StandardScaler().fit(X[tr_ok])
+    pca = PCA(n_components=k, random_state=0).fit(scaler.transform(X[tr_ok]))
+    out = np.full((len(X), k), np.nan, dtype=np.float32)
+    out[row_ok] = pca.transform(scaler.transform(X[row_ok])).astype(np.float32)
+    cols = [f"pc{i}" for i in range(k)]
+    return pd.DataFrame(out, columns=cols)
 
 
 # ---------------------------------------------------------------------------
