@@ -58,6 +58,20 @@ class ModelUnavailable(RuntimeError):
     """
 
 
+class InvalidSample(ValueError):
+    """Input the model cannot honestly score, carrying what the client must fix.
+
+    Used where guessing would silently change the question being answered rather
+    than merely lose a little precision — see the tissue handling in _normalize.
+    The app maps this to a 422 that names the field and lists valid values.
+    """
+
+    def __init__(self, message: str, field: str | None = None, valid_values=None):
+        super().__init__(message)
+        self.field = field
+        self.valid_values = list(valid_values) if valid_values is not None else None
+
+
 # Short, data-flavored notes for the biomarkers we surface.
 BIOMARKER_NOTE = {
     "BRAF_mut": "BRAF mutation is associated in GDSC with strong sensitivity to BRAF inhibitors.",
@@ -156,29 +170,47 @@ def _coerce_tissue(v, tissues) -> str | None:
     return lut.get(norm_s)
 
 
-DEFAULT_TISSUE = "lung_NSCLC"
+def _normalize(flat: dict, prefix: str = "") -> tuple[dict, list[str], list[str]]:
+    """Coerce a raw record into a model sample.
 
-
-def _normalize(flat: dict, prefix: str = "") -> tuple[dict, list[str]]:
+    Returns (sample, warnings, specified_features) where `specified_features`
+    lists the biomarkers the input actually stated — everything else is an
+    assumption, and callers surface that rather than hiding it.
+    """
     lookup = {str(k).strip().lower(): k for k in flat}
     tissues = _known_tissues()
     sample: dict = {}
     warnings: list[str] = []
+    specified: list[str] = []
 
-    # tissue
+    # --- tissue: required, never guessed ------------------------------------
+    # Tissue is not one feature among many. Tissue-blocked CV puts mean Spearman
+    # at 0.10 vs 0.38 within-tissue, i.e. the model leans hard on tissue
+    # identity. Defaulting a missing tissue to lung_NSCLC therefore doesn't
+    # answer the question imprecisely — it confidently answers a different
+    # question, with nothing in the response indicating that happened.
     src = lookup.get("tissue") or lookup.get("tissue_factor") or lookup.get("cancer_type")
     if src is None:
-        sample["tissue"] = DEFAULT_TISSUE
-        warnings.append(f"{prefix}tissue missing — defaulted to '{DEFAULT_TISSUE}'.")
-    else:
-        t = _coerce_tissue(flat[src], tissues)
-        if t is None:
-            sample["tissue"] = DEFAULT_TISSUE
-            warnings.append(f"{prefix}unrecognized tissue '{flat[src]}' — defaulted to '{DEFAULT_TISSUE}'.")
-        else:
-            sample["tissue"] = t
+        raise InvalidSample(
+            f"{prefix}'tissue' is required — the model's predictions depend "
+            "heavily on it, so it cannot be inferred.",
+            field="tissue", valid_values=tissues,
+        )
+    t = _coerce_tissue(flat[src], tissues)
+    if t is None:
+        raise InvalidSample(
+            f"{prefix}unrecognized tissue '{flat[src]}'.",
+            field="tissue", valid_values=tissues,
+        )
+    sample["tissue"] = t
 
-    # binary features
+    # --- binary biomarkers: absent means unknown, and we say so --------------
+    # Unspecified markers are still scored as 0 (negative/wild-type): that is
+    # what the model was trained on — the GDSC feature matrix has no missing
+    # values, so the boosters never learned a missing-direction, and encoding
+    # unspecified as NaN measured no better on held-out lines while changing
+    # ~half of all top-1 picks (experiments/run_missing_features.py). So the
+    # encoding stays; what changes is that the assumption is now reported.
     for f in BINARY_FEATURES:
         s = lookup.get(f.lower())
         if s is None:
@@ -190,7 +222,16 @@ def _normalize(flat: dict, prefix: str = "") -> tuple[dict, list[str]]:
             warnings.append(f"{prefix}could not parse '{f}'='{flat[s]}' — set to 0.")
         else:
             sample[f] = c
-    return sample, warnings
+            specified.append(f)
+
+    assumed = [f for f in BINARY_FEATURES if f not in specified]
+    if assumed:
+        warnings.append(
+            f"{prefix}{len(assumed)} of {len(BINARY_FEATURES)} biomarkers were not "
+            f"specified and were assumed negative / wild-type: "
+            f"{', '.join(FEATURE_LABEL.get(f, f) for f in assumed)}."
+        )
+    return sample, warnings, specified
 
 
 def _raw_to_records(raw: bytes, filename: str) -> list[dict]:
@@ -207,7 +248,7 @@ def _raw_to_records(raw: bytes, filename: str) -> list[dict]:
     return [{str(c): row[c] for c in df.columns} for _, row in df.iterrows()]
 
 
-def parse_sample(raw: bytes, filename: str = "") -> tuple[dict, list[str]]:
+def parse_sample(raw: bytes, filename: str = "") -> tuple[dict, list[str], list[str]]:
     recs = _raw_to_records(raw, filename)
     if not recs:
         raise ValueError("No sample found in file.")
@@ -221,13 +262,13 @@ def parse_cohort(raw: bytes, filename: str = "") -> tuple[list[dict], list[str]]
     samples, warnings = [], []
     for i, r in enumerate(recs, start=1):
         prefix = f"Row {i}: " if len(recs) > 1 else ""
-        s, w = _normalize(r, prefix=prefix)
+        s, w, _specified = _normalize(r, prefix=prefix)
         samples.append(s)
         warnings.extend(w)
     return samples, warnings
 
 
-def sample_from_dict(d: dict) -> tuple[dict, list[str]]:
+def sample_from_dict(d: dict) -> tuple[dict, list[str], list[str]]:
     return _normalize({str(k): v for k, v in d.items()})
 
 

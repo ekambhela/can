@@ -37,7 +37,8 @@ def test_predict_returns_ranked_results(bundle, monkeypatch):
     P.load_bundle.cache_clear()
     monkeypatch.setattr(P, "load_bundle", lambda: bundle)
 
-    sample, _warnings = P.sample_from_dict({"tissue": bundle["tissues"][0], "TP53_mut": 1})
+    sample, _warnings, _specified = P.sample_from_dict(
+        {"tissue": bundle["tissues"][0], "TP53_mut": 1})
     result = P.predict(sample, top_k=3)
 
     assert result["recommendation"] in bundle["name_to_id"]

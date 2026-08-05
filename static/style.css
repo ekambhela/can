@@ -458,6 +458,21 @@ html.js .preview.in .pv-bar i { animation: grow 1.1s cubic-bezier(.2, .7, .2, 1)
 .parsed pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 12px; overflow: auto; color: var(--ink-2); }
 #warnings .warn, #batchWarnings .warn { margin: 10px 0; padding: 10px 12px; border-radius: 9px; font-size: 12.5px; background: #fdf6ec; border: 1px solid #f0dcb8; color: #92610e; }
 
+/* What the model measured vs assumed. Sits directly under the headline, not in
+   the collapsed "parsed sample" details: an unstated biomarker is scored as
+   wild-type, which is an assumption about the tumor, not a formatting note. */
+.assumptions { margin: 16px 0 4px; padding: 12px 14px; border-radius: 11px;
+  background: var(--surface-2); border: 1px solid var(--line); font-size: 12.5px; }
+.assumptions.has-assumed { background: #fdf6ec; border-color: #f0dcb8; }
+.assumptions .asm-head { font-weight: 700; color: var(--ink-2); margin-bottom: 8px; }
+.assumptions.has-assumed .asm-head { color: #92610e; }
+.assumptions .asm-row { margin-top: 6px; line-height: 1.9; color: var(--ink-2); }
+.assumptions .asm-row b { color: var(--ink); font-weight: 650; margin-right: 4px; }
+.asm { display: inline-block; padding: 1px 8px; margin: 0 3px 3px 0; border-radius: 999px;
+  border: 1px solid var(--line-2); font-size: 11.5px; white-space: nowrap; }
+.asm.known { background: rgba(15, 157, 107, .09); border-color: rgba(15, 157, 107, .28); color: #0b7a53; }
+.asm.assumed { background: var(--surface); border-color: #e6cfa6; color: #92610e; }
+
 .error { margin-top: 14px; padding: 13px 15px; border-radius: 10px; background: rgba(220, 38, 38, .07); border: 1px solid rgba(220, 38, 38, .25); color: #b3261e; font-size: 13.5px; }
 
 /* batch table */

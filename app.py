@@ -22,6 +22,8 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from model.predict import (
+    BINARY_FEATURES,
+    InvalidSample,
     ModelUnavailable,
     api_metrics,
     feature_schema,
@@ -59,7 +61,7 @@ def _warm_examples() -> None:
                 samples, _ = parse_cohort(raw, name)
                 predict_batch(samples)
             else:
-                sample, _ = parse_sample(raw, name)
+                sample, _warnings, _specified = parse_sample(raw, name)
                 predict(sample)
         except Exception as exc:  # noqa: BLE001 — warming is best-effort
             log.warning("could not warm example %s: %s", name, exc)
@@ -102,6 +104,25 @@ async def model_unavailable_handler(_request: Request, exc: ModelUnavailable) ->
     return JSONResponse(status_code=503, content={"status": "no_model", "detail": str(exc)})
 
 
+@app.exception_handler(InvalidSample)
+async def invalid_sample_handler(_request: Request, exc: InvalidSample) -> JSONResponse:
+    """Input we refuse to guess at -> 422 naming the field and its valid values."""
+    content: dict = {"status": "invalid_sample", "detail": str(exc)}
+    if exc.field:
+        content["field"] = exc.field
+    if exc.valid_values:
+        content["valid_values"] = exc.valid_values
+    return JSONResponse(status_code=422, content=content)
+
+
+def _assumption_report(specified: list[str]) -> dict:
+    """What the model was told vs what it assumed — surfaced on every response."""
+    return {
+        "specified_features": specified,
+        "assumed_features": [f for f in BINARY_FEATURES if f not in specified],
+    }
+
+
 async def read_upload(file: UploadFile) -> bytes:
     """Read an uploaded file, rejecting empty or oversized payloads.
 
@@ -134,14 +155,15 @@ async def api_predict_form(payload: dict = Body(...)) -> JSONResponse:
     if not isinstance(payload, dict) or not payload:
         raise HTTPException(status_code=400, detail="Empty or invalid payload.")
     try:
-        sample, warnings = sample_from_dict(payload)
+        sample, warnings, specified = sample_from_dict(payload)
         result = predict(sample)
-    except (ModelUnavailable, HTTPException):
-        raise  # 503 / explicit status — must not be recast as a 422 below
+    except (ModelUnavailable, InvalidSample, HTTPException):
+        raise  # structured 503/422 — must not be recast as a generic 422 below
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=422, detail=f"Could not score sample: {exc}")
     result["parsed_sample"] = sample
     result["warnings"] = warnings
+    result.update(_assumption_report(specified))
     return JSONResponse(result)
 
 
@@ -165,9 +187,9 @@ async def api_predict(file: UploadFile = File(...)) -> JSONResponse:
     raw = await read_upload(file)
 
     try:
-        sample, warnings = parse_sample(raw, file.filename or "")
-    except (ModelUnavailable, HTTPException):
-        raise  # 503 / explicit status — must not be recast as a 422 below
+        sample, warnings, specified = parse_sample(raw, file.filename or "")
+    except (ModelUnavailable, InvalidSample, HTTPException):
+        raise  # structured 503/422 — must not be recast as a generic 422 below
     except Exception as exc:  # noqa: BLE001 — surface a clean parse error to the UI
         raise HTTPException(status_code=422, detail=f"Could not parse sample: {exc}")
 
@@ -177,6 +199,7 @@ async def api_predict(file: UploadFile = File(...)) -> JSONResponse:
     result["parsed_sample"] = sample
     result["warnings"] = warnings
     result["filename"] = file.filename
+    result.update(_assumption_report(specified))
     return JSONResponse(result)
 
 
@@ -187,8 +210,8 @@ async def api_predict_batch(file: UploadFile = File(...)) -> JSONResponse:
 
     try:
         samples, warnings = parse_cohort(raw, file.filename or "")
-    except (ModelUnavailable, HTTPException):
-        raise  # 503 / explicit status — must not be recast as a 422 below
+    except (ModelUnavailable, InvalidSample, HTTPException):
+        raise  # structured 503/422 — must not be recast as a generic 422 below
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=422, detail=f"Could not parse cohort: {exc}")
 

@@ -12,6 +12,7 @@ let selectedFile = null;
 let mode = "single";          // "single" | "manual" | "batch"
 let lastBatch = null;         // cached cohort result for CSV export
 let currentSample = null;     // parsed sample behind the current single result (for sharing)
+let FEATURE_LABELS = {};      // feature key -> friendly label, filled from /api/schema
 
 /* ---- live model stats (from /api/health) ---- */
 async function loadStats() {
@@ -162,6 +163,7 @@ document.querySelectorAll(".mode").forEach((btn) => {
 async function loadSchema() {
   try {
     const s = await (await fetch("/api/schema")).json();
+    [...s.mutations, ...s.extras].forEach((m) => { FEATURE_LABELS[m.key] = m.label; });
     $("m_tissue").innerHTML = s.tissues
       .map((c) => `<option value="${c.key}">${escapeHtml(c.label)}</option>`).join("");
     $("mutChecks").innerHTML = s.mutations.map((m) => `
@@ -264,7 +266,7 @@ form.addEventListener("submit", async (e) => {
       });
     }
     const data = await r.json();
-    if (!r.ok) throw new Error(data.detail || "Prediction failed.");
+    if (!r.ok) throw new Error(apiError(data));
     mode === "batch" ? renderBatch(data) : renderSingle(data);
   } catch (err) {
     $("placeholder").hidden = true;
@@ -320,9 +322,55 @@ function renderSingle(d) {
 
   $("ranking").innerHTML = d.ranked.map(renderRankRow).join("");
 
+  renderAssumptions(d);
+
   const warns = d.warnings || [];
   $("warnings").innerHTML = warns.map((w) => `<div class="warn">⚠ ${escapeHtml(w)}</div>`).join("");
   $("parsedSample").textContent = JSON.stringify(d.parsed_sample, null, 2);
+}
+
+/* What the model was actually told, versus what it filled in for you.
+   Deliberately not inside the collapsed "Parsed sample" details: an unstated
+   biomarker is scored as wild-type, which is an assumption about the tumor,
+   not a formatting note. */
+function renderAssumptions(d) {
+  const box = $("assumptions");
+  if (!box) return;
+  const assumed = d.assumed_features || [];
+  const specified = d.specified_features || [];
+  if (!assumed.length && !specified.length) { box.hidden = true; return; }
+
+  const total = assumed.length + specified.length;
+  const chip = (f, cls) => `<span class="asm ${cls}">${escapeHtml(featureLabel(f))}</span>`;
+  const saw = specified.length
+    ? `<div class="asm-row"><b>Measured (${specified.length}/${total}):</b> ${specified.map((f) => chip(f, "known")).join(" ")}</div>`
+    : "";
+  const guessed = assumed.length
+    ? `<div class="asm-row"><b>Assumed negative (${assumed.length}/${total}):</b> ${assumed.map((f) => chip(f, "assumed")).join(" ")}</div>`
+    : "";
+
+  box.hidden = false;
+  box.className = "assumptions" + (assumed.length ? " has-assumed" : "");
+  box.innerHTML = `
+    <div class="asm-head">${assumed.length
+      ? `⚠ ${assumed.length} of ${total} biomarkers weren't specified — the model scored them as negative / wild-type.`
+      : `✓ All ${total} biomarkers were specified.`}</div>
+    ${saw}${guessed}`;
+}
+
+/* Friendly label for a feature key, from /api/schema when available. */
+function featureLabel(key) { return FEATURE_LABELS[key] || key; }
+
+/* Turn an API error body into a message. A 422 that names a field and its valid
+   values (e.g. a missing tissue) should say what to fix, not just that it failed. */
+function apiError(data) {
+  let msg = (data && data.detail) || "Prediction failed.";
+  if (data && data.field && Array.isArray(data.valid_values) && data.valid_values.length) {
+    const shown = data.valid_values.slice(0, 8).join(", ");
+    const more = data.valid_values.length > 8 ? `, … (${data.valid_values.length} total)` : "";
+    msg += ` Valid ${data.field} values: ${shown}${more}.`;
+  }
+  return msg;
 }
 
 function renderFactor(f) {
@@ -441,7 +489,7 @@ document.querySelectorAll(".chip.run").forEach((a) => {
       const ep = kind === "batch" ? "/api/predict_batch" : "/api/predict";
       const r = await fetch(ep, { method: "POST", body: fd });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || "Prediction failed.");
+      if (!r.ok) throw new Error(apiError(data));
       kind === "batch" ? renderBatch(data) : renderSingle(data);
     } catch (err) {
       $("placeholder").hidden = true;

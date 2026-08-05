@@ -58,7 +58,7 @@ def test_predict_works_with_data_dir_absent():
 
         proc = _run(
             "from model.predict import predict, sample_from_dict\n"
-            "s, _ = sample_from_dict({'tissue': 'skin', 'BRAF_mut': 1})\n"
+            "s, _w, _spec = sample_from_dict({'tissue': 'skin', 'BRAF_mut': 1})\n"
             "r = predict(s, top_k=3)\n"
             "assert len(r['ranked']) == 3, r\n"
             "print('scored:', r['recommendation'])\n",
