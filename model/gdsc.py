@@ -56,12 +56,13 @@ def _load_drugs() -> tuple[dict, dict]:
       DRUGS       {canonical_id: (display_name, target_pathway, targets)}
       DRUG_SOURCE {canonical_id: [source_drug_id, ...]}   (>=1 per compound)
     """
-    import pandas as pd
-    ic = pd.read_csv(os.path.join(DATA_DIR, "IC50_v17.csv.gz"), nrows=1)
-    v17_ids = [int(c.split("_")[1]) for c in ic.columns if c.startswith("Drug_")]
-    counts = {i: int(pd.read_csv(os.path.join(DATA_DIR, "IC50_v17.csv.gz"),
-                                 usecols=[f"Drug_{i}_IC50"])[f"Drug_{i}_IC50"].notna().sum())
-              for i in v17_ids}
+    # Read the (gzipped) matrix ONCE and count every drug column from it. Reading
+    # it per drug id instead — 265 decompressions of the same file — cost ~12 s of
+    # import time, since this runs at module scope.
+    ic = pd.read_csv(os.path.join(DATA_DIR, "IC50_v17.csv.gz"))
+    drug_cols = [c for c in ic.columns if c.startswith("Drug_")]
+    v17_ids = [int(c.split("_")[1]) for c in drug_cols]
+    counts = {int(c.split("_")[1]): int(n) for c, n in ic[drug_cols].notna().sum().items()}
     dl = pd.read_csv(os.path.join(DATA_DIR, "drug_list_gdsc.csv"))
     meta = {int(r.drug_id): (str(r.Name).strip(), str(r["Target pathway"]).strip(),
                              str(r.Targets).strip())
