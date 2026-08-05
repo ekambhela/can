@@ -17,15 +17,16 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from model.predict import (
+    ModelUnavailable,
     api_metrics,
     feature_schema,
     full_metrics,
-    load_bundle,
+    get_bundle,
     parse_cohort,
     parse_sample,
     predict,
@@ -76,7 +77,7 @@ async def lifespan(_app: FastAPI):
     import threading
 
     try:
-        load_bundle()
+        get_bundle()
         # warm examples off the startup path; lru_cache is thread-safe.
         threading.Thread(target=_warm_examples, name="warm-examples", daemon=True).start()
     except Exception as exc:  # noqa: BLE001 — log and continue; /api/health reports it
@@ -86,6 +87,19 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Karkive", version="1.2.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE, "static")), name="static")
+
+
+@app.exception_handler(ModelUnavailable)
+async def model_unavailable_handler(_request: Request, exc: ModelUnavailable) -> JSONResponse:
+    """Any failure to load the model becomes a structured 503, on every route.
+
+    Registered once rather than caught per-route: the failure mode that matters
+    is a dependency bump making the pickle unloadable, and that can surface from
+    any handler that touches the model — including /api/health, which the host
+    polls to decide whether the deploy is alive. A 500 there reads as "app
+    crashed"; a 503 with status=no_model says what is actually wrong.
+    """
+    return JSONResponse(status_code=503, content={"status": "no_model", "detail": str(exc)})
 
 
 async def read_upload(file: UploadFile) -> bytes:
@@ -122,8 +136,8 @@ async def api_predict_form(payload: dict = Body(...)) -> JSONResponse:
     try:
         sample, warnings = sample_from_dict(payload)
         result = predict(sample)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+    except (ModelUnavailable, HTTPException):
+        raise  # 503 / explicit status — must not be recast as a 422 below
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=422, detail=f"Could not score sample: {exc}")
     result["parsed_sample"] = sample
@@ -135,21 +149,15 @@ async def api_predict_form(payload: dict = Body(...)) -> JSONResponse:
 def health() -> dict:
     """Liveness + summary metrics. Render polls this frequently, so it returns
     only the small summary — the 369-entry per-drug dicts live at /api/metrics."""
-    try:
-        bundle = load_bundle()
-        return {"status": "ok", "model_version": bundle.get("version"),
-                "metrics": api_metrics()}
-    except FileNotFoundError as exc:
-        return JSONResponse(status_code=503, content={"status": "no_model", "detail": str(exc)})
+    bundle = get_bundle()   # ModelUnavailable -> 503 via the exception handler
+    return {"status": "ok", "model_version": bundle.get("version"),
+            "metrics": api_metrics()}
 
 
 @app.get("/api/metrics")
 def metrics() -> dict:
     """Full evaluation metrics, including per-drug R^2 / Spearman (large)."""
-    try:
-        return full_metrics()
-    except FileNotFoundError as exc:
-        return JSONResponse(status_code=503, content={"status": "no_model", "detail": str(exc)})
+    return full_metrics()
 
 
 @app.post("/api/predict")
@@ -158,13 +166,12 @@ async def api_predict(file: UploadFile = File(...)) -> JSONResponse:
 
     try:
         sample, warnings = parse_sample(raw, file.filename or "")
+    except (ModelUnavailable, HTTPException):
+        raise  # 503 / explicit status — must not be recast as a 422 below
     except Exception as exc:  # noqa: BLE001 — surface a clean parse error to the UI
         raise HTTPException(status_code=422, detail=f"Could not parse sample: {exc}")
 
-    try:
-        result = predict(sample)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+    result = predict(sample)   # ModelUnavailable -> 503 via the exception handler
 
     # Echo back the parsed sample so the UI can show what the model "saw".
     result["parsed_sample"] = sample
@@ -180,6 +187,8 @@ async def api_predict_batch(file: UploadFile = File(...)) -> JSONResponse:
 
     try:
         samples, warnings = parse_cohort(raw, file.filename or "")
+    except (ModelUnavailable, HTTPException):
+        raise  # 503 / explicit status — must not be recast as a 422 below
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=422, detail=f"Could not parse cohort: {exc}")
 
@@ -189,10 +198,7 @@ async def api_predict_batch(file: UploadFile = File(...)) -> JSONResponse:
             detail=f"Cohort has {len(samples)} rows; max {MAX_COHORT_ROWS}.",
         )
 
-    try:
-        result = predict_batch(samples)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
+    result = predict_batch(samples)   # ModelUnavailable -> 503 via the exception handler
 
     result["warnings"] = warnings[:20]  # cap noise
     result["filename"] = file.filename

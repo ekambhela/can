@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import os
 from functools import lru_cache
 
@@ -37,6 +38,25 @@ from .schema import (
 
 ARTIFACTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "artifacts")
 MODEL_PATH = os.path.join(ARTIFACTS, "model.joblib")
+
+log = logging.getLogger("karkive.predict")
+
+
+class ModelUnavailable(RuntimeError):
+    """The trained model could not be loaded — for any reason.
+
+    A missing artifact is the obvious case, but the one that actually bites in
+    production is a version skew: model.joblib is a pickle of scikit-learn
+    estimators, so bumping scikit-learn/numpy without retraining can make
+    joblib.load raise AttributeError, ModuleNotFoundError, or fail some internal
+    reconstruct. Those aren't FileNotFoundError, and left untyped they surface
+    as unhandled 500s — including on /api/health, the route the host polls to
+    decide whether the deploy is alive.
+
+    Everything that loads the model raises this instead, and the app maps it to
+    a structured 503.
+    """
+
 
 # Short, data-flavored notes for the biomarkers we surface.
 BIOMARKER_NOTE = {
@@ -70,24 +90,44 @@ def load_bundle() -> dict:
     return joblib.load(MODEL_PATH)
 
 
+def get_bundle() -> dict:
+    """Load the model, converting ANY failure into ModelUnavailable.
+
+    The single load entry point for the serving path: everything below calls
+    this rather than load_bundle(), so no load failure can escape as an
+    unhandled 500. The original exception is logged with its traceback (the
+    operator needs it) and chained, but not exposed to the client.
+    """
+    try:
+        return load_bundle()
+    except Exception as exc:  # noqa: BLE001 — deliberately broad; see ModelUnavailable
+        log.exception("model load failed (%s)", type(exc).__name__)
+        raise ModelUnavailable(
+            f"Model could not be loaded ({type(exc).__name__}: {exc})"
+        ) from exc
+
+
 def api_metrics() -> dict:
     """Summary metrics only (no 369-entry per-drug dicts) — for API payloads."""
-    return summary_metrics(load_bundle().get("metrics", {}))
+    return summary_metrics(get_bundle().get("metrics", {}))
 
 
 def full_metrics() -> dict:
     """Complete metrics incl. per-drug R^2 / Spearman — for the /api/metrics route."""
-    return load_bundle().get("metrics", {})
+    return get_bundle().get("metrics", {})
 
 
 # ---------------------------------------------------------------------------
 # Parsing / normalization
 # ---------------------------------------------------------------------------
 def _known_tissues() -> list[str]:
-    try:
-        return load_bundle()["tissues"]
-    except Exception:  # noqa: BLE001
-        return ["lung_NSCLC"]
+    """The tissue vocabulary the model was trained on, from the bundle.
+
+    Propagates ModelUnavailable rather than falling back to a stub list: with no
+    model we cannot validate a tissue against anything real, and quietly
+    accepting input against a fabricated vocabulary is worse than a 503.
+    """
+    return get_bundle()["tissues"]
 
 
 def _coerce_binary(v) -> float | None:
@@ -268,7 +308,7 @@ def predict(sample: dict, top_k: int | None = 8) -> dict:
     repeated/identical inputs — e.g. the built-in example files — are instant."""
     items = tuple(sorted(sample.items()))
     # id(bundle) keys the cache to the loaded model, so a reload invalidates it.
-    return dict(_predict_cached(id(load_bundle()), items, top_k))
+    return dict(_predict_cached(id(get_bundle()), items, top_k))
 
 
 @lru_cache(maxsize=2048)
@@ -277,7 +317,7 @@ def _predict_cached(_bundle_id: int, items: tuple, top_k: int | None) -> dict:
 
 
 def _predict_impl(sample: dict, top_k: int | None = 8) -> dict:
-    bundle = load_bundle()
+    bundle = get_bundle()
     meta = bundle["drug_meta"]
     resid = bundle.get("resid_std", {})
 
@@ -314,7 +354,7 @@ def _predict_impl(sample: dict, top_k: int | None = 8) -> dict:
 
 
 def predict_batch(samples: list[dict]) -> dict:
-    bundle = load_bundle()
+    bundle = get_bundle()
     meta = bundle["drug_meta"]
     resid = bundle.get("resid_std", {})
     names = [bundle["id_to_name"][d] for d in bundle["drug_ids"]]
