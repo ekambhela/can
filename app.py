@@ -23,6 +23,7 @@ from fastapi.staticfiles import StaticFiles
 
 from model.predict import (
     BINARY_FEATURES,
+    CohortTooLarge,
     InvalidSample,
     ModelUnavailable,
     api_metrics,
@@ -91,6 +92,11 @@ async def invalid_sample_handler(_request: Request, exc: InvalidSample) -> JSONR
     if exc.valid_values:
         content["valid_values"] = exc.valid_values
     return JSONResponse(status_code=422, content=content)
+
+
+@app.exception_handler(CohortTooLarge)
+async def cohort_too_large_handler(_request: Request, exc: CohortTooLarge) -> JSONResponse:
+    return JSONResponse(status_code=413, content={"status": "too_large", "detail": str(exc)})
 
 
 def _assumption_report(specified: list[str]) -> dict:
@@ -187,17 +193,14 @@ async def api_predict_batch(file: UploadFile = File(...)) -> JSONResponse:
     raw = await read_upload(file)
 
     try:
-        samples, warnings = parse_cohort(raw, file.filename or "")
-    except (ModelUnavailable, InvalidSample, HTTPException):
-        raise  # structured 503/422 — must not be recast as a generic 422 below
+        # The cap is applied during the read, so an oversized upload is rejected
+        # without parsing and normalizing every row.
+        samples, warnings = parse_cohort(raw, file.filename or "",
+                                         max_rows=MAX_COHORT_ROWS)
+    except (ModelUnavailable, InvalidSample, CohortTooLarge, HTTPException):
+        raise  # structured 503/422/413 — must not be recast as a generic 422 below
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=422, detail=f"Could not parse cohort: {exc}")
-
-    if len(samples) > MAX_COHORT_ROWS:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Cohort has {len(samples)} rows; max {MAX_COHORT_ROWS}.",
-        )
 
     result = predict_batch(samples)   # ModelUnavailable -> 503 via the exception handler
 

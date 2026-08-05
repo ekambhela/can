@@ -74,6 +74,19 @@ class InvalidSample(ValueError):
         self.valid_values = list(valid_values) if valid_values is not None else None
 
 
+class CohortTooLarge(ValueError):
+    """Upload has more rows than we will score. Mapped to a 413.
+
+    Raised during parsing, not after: a 2 MB CSV is ~50k rows, and fully
+    parsing and normalizing all of them only to reject the request is exactly
+    the work an oversized upload should not be able to buy.
+    """
+
+    def __init__(self, max_rows: int):
+        super().__init__(f"Cohort exceeds the maximum of {max_rows} rows.")
+        self.max_rows = max_rows
+
+
 # Short, data-flavored notes for the biomarkers we surface.
 BIOMARKER_NOTE = {
     "BRAF_mut": "BRAF mutation is associated in GDSC with strong sensitivity to BRAF inhibitors.",
@@ -286,17 +299,41 @@ def _normalize(flat: dict, prefix: str = "") -> tuple[dict, list[str], list[str]
     return sample, warnings, specified
 
 
-def _raw_to_records(raw: bytes, filename: str) -> list[dict]:
+KEY_VALUE_HEADERS = {"feature", "key", "name", "marker"}
+
+
+def _raw_to_records(raw: bytes, filename: str, max_rows: int | None = None) -> list[dict]:
+    """Parse an upload into flat records.
+
+    `max_rows` caps the read itself (pandas `nrows`) so an oversized cohort is
+    rejected without materializing every row — see CohortTooLarge.
+    """
     text = raw.decode("utf-8-sig", errors="replace").strip()
     name = (filename or "").lower()
+
     if name.endswith(".json") or text[:1] in "{[":
         obj = json.loads(text)
-        return obj if isinstance(obj, list) else [obj]
+        recs = obj if isinstance(obj, list) else [obj]
+        if max_rows is not None and len(recs) > max_rows:
+            raise CohortTooLarge(max_rows)
+        return recs
+
     sep = "\t" if (name.endswith(".tsv") or "\t" in text.splitlines()[0]) else ","
-    df = pd.read_csv(io.StringIO(text), sep=sep)
+    # Read one row beyond the cap: enough to know we're over without reading the
+    # rest of the file.
+    limit = None if max_rows is None else max_rows + 1
+    df = pd.read_csv(io.StringIO(text), sep=sep, nrows=limit)
     cols = [c.strip().lower() for c in df.columns]
-    if df.shape[1] == 2 and cols[0] in {"feature", "key", "name", "marker"}:
+
+    if df.shape[1] == 2 and cols[0] in KEY_VALUE_HEADERS:
+        # A feature/value file is ONE sample spread over many rows, so the row
+        # cap doesn't apply to it — re-read in full if the limit truncated it.
+        if limit is not None and len(df) >= limit:
+            df = pd.read_csv(io.StringIO(text), sep=sep)
         return [{str(k): v for k, v in zip(df.iloc[:, 0], df.iloc[:, 1])}]
+
+    if max_rows is not None and len(df) > max_rows:
+        raise CohortTooLarge(max_rows)
     return [{str(c): row[c] for c in df.columns} for _, row in df.iterrows()]
 
 
@@ -307,8 +344,9 @@ def parse_sample(raw: bytes, filename: str = "") -> tuple[dict, list[str], list[
     return _normalize(recs[0])
 
 
-def parse_cohort(raw: bytes, filename: str = "") -> tuple[list[dict], list[str]]:
-    recs = _raw_to_records(raw, filename)
+def parse_cohort(raw: bytes, filename: str = "",
+                 max_rows: int | None = None) -> tuple[list[dict], list[str]]:
+    recs = _raw_to_records(raw, filename, max_rows=max_rows)
     if not recs:
         raise ValueError("No samples found in file.")
     samples, warnings = [], []
