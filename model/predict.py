@@ -311,7 +311,14 @@ def _raw_to_records(raw: bytes, filename: str, max_rows: int | None = None) -> l
     text = raw.decode("utf-8-sig", errors="replace").strip()
     name = (filename or "").lower()
 
-    if name.endswith(".json") or text[:1] in "{[":
+    # Explicit, because it used to be accidental: the JSON test was
+    # `text[:1] in "{["`, and "" is a substring of every string, so a
+    # whitespace-only upload fell into json.loads("") and surfaced as a
+    # confusing JSONDecodeError instead of "there's nothing here".
+    if not text:
+        raise ValueError("File contains no data.")
+
+    if name.endswith(".json") or text.startswith(("{", "[")):
         obj = json.loads(text)
         recs = obj if isinstance(obj, list) else [obj]
         if max_rows is not None and len(recs) > max_rows:
