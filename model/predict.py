@@ -51,9 +51,18 @@ BIOMARKER_NOTE = {
 
 @lru_cache(maxsize=1)
 def load_bundle() -> dict:
+    """Load the trained bundle, or raise if it isn't there.
+
+    Deliberately does NOT train on demand. Training reads the full GDSC
+    matrices and fits ~370 boosters — minutes of CPU and hundreds of MB — so
+    triggering it from a web request turns one cold start into a request that
+    never returns, on a box that may not even have data/ (see model/schema.py).
+    Building the artifact is an operator step; serving just loads it.
+    """
     if not os.path.exists(MODEL_PATH):
-        from .train import main as train_main
-        train_main()
+        raise FileNotFoundError(
+            f"No trained model at {MODEL_PATH}. Build it with: python -m model.train"
+        )
     import joblib
     # SECURITY: joblib.load unpickles arbitrary Python objects, so only ever load
     # model.joblib artifacts we produced ourselves (see model/train.py). Never
