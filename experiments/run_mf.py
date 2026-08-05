@@ -1,7 +1,10 @@
 import warnings
+
 from scipy.stats import ConstantInputWarning
+
 from experiments.harness import build_truth, compute_metrics, fmt, load_universe, random_splits
 from experiments.mf import run_mf
+
 warnings.simplefilter("ignore", ConstantInputWarning)
 U = load_universe()
 tr, va, te = random_splits(U["n"], seed=0)

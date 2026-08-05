@@ -52,8 +52,11 @@ def run_mf(U, train_idx, eval_idx, cell_cols, truth=None, K=16, epochs=25,
         j = didx[d]
         for i in tr_set:
             if not np.isnan(t[i]):
-                rows_i.append(i); rows_j.append(j); ys.append(t[i])
-    rows_i = np.asarray(rows_i); rows_j = np.asarray(rows_j)
+                rows_i.append(i)
+                rows_j.append(j)
+                ys.append(t[i])
+    rows_i = np.asarray(rows_i)
+    rows_j = np.asarray(rows_j)
     ys = np.asarray(ys, dtype=np.float32)
 
     rng = np.random.default_rng(seed)
@@ -63,11 +66,13 @@ def run_mf(U, train_idx, eval_idx, cell_cols, truth=None, K=16, epochs=25,
 
     n = len(ys)
     bs = 8192
-    for ep in range(epochs):
+    for _ep in range(epochs):
         perm = rng.permutation(n)
         for s in range(0, n, bs):
             idx = perm[s:s + bs]
-            i = rows_i[idx]; j = rows_j[idx]; y = ys[idx]
+            i = rows_i[idx]
+            j = rows_j[idx]
+            y = ys[idx]
             xi = Xf[i]                      # (B, F)
             u = xi @ W                      # (B, K)
             vj = V[j]                       # (B, K)
@@ -86,11 +91,12 @@ def run_mf(U, train_idx, eval_idx, cell_cols, truth=None, K=16, epochs=25,
     # predict eval pairs
     pred = {}
     for d in ids:
-        t = truth[d]; j = didx[d]
+        t = truth[d]
+        j = didx[d]
         ev = [i for i in eval_idx if not np.isnan(t[i])]
         if not ev:
             continue
         u = Xf[ev] @ W
         p = b[j] + u @ V[j]
-        pred[d] = {int(i): float(pp) for i, pp in zip(ev, p)}
+        pred[d] = {int(i): float(pp) for i, pp in zip(ev, p, strict=True)}
     return pred

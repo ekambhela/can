@@ -27,10 +27,12 @@ import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 
 CAT_COLS = ["tissue", "drug_pathway", "drug_id"]
-GBM_PARAMS = dict(max_leaf_nodes=127, learning_rate=0.05, max_iter=600,
-                  l2_regularization=1.0, early_stopping=True,
-                  validation_fraction=0.1, random_state=0,
-                  categorical_features="from_dtype")
+GBM_PARAMS = {
+    "max_leaf_nodes": 127, "learning_rate": 0.05, "max_iter": 600,
+    "l2_regularization": 1.0, "early_stopping": True,
+    "validation_fraction": 0.1, "random_state": 0,
+    "categorical_features": "from_dtype",
+}
 
 
 def _target_tokens(targets: str):
@@ -131,7 +133,7 @@ def predict_pairs(model, cat_levels, feats, tissue_arr, truth, eval_idx,
         X[c] = _as_cat(X[c], cat_levels[c])
     p = model.predict(X)
     out = {}
-    for d, i, pp in zip(did, ln, p):
+    for d, i, pp in zip(did, ln, p, strict=True):
         out.setdefault(int(d), {})[int(i)] = float(pp)
     return out
 
@@ -183,4 +185,4 @@ def score_sample(bundle: dict, sample: dict, drug_ids=None) -> dict:
     ids = drug_ids if drug_ids is not None else bundle["drug_ids"]
     preds = score_pairs(bundle, [sample], [(0, d) for d in ids])
     id_to_name = bundle["id_to_name"]
-    return {id_to_name[d]: float(p) for d, p in zip(ids, preds)}
+    return {id_to_name[d]: float(p) for d, p in zip(ids, preds, strict=True)}

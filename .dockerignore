@@ -11,9 +11,14 @@ artifacts/dataset_*.csv
 docs/
 
 # Training data. The serving path reads only artifacts/model.joblib (the drug
-# panel, tissue list and drug annotation are all in the bundle), so the ~1.9 MB
-# of GDSC matrices are training-time only. See model/schema.py.
-data/
+# panel, tissue list and drug annotation all travel in the bundle), so the GDSC
+# matrices are training-time only. See model/schema.py.
+#
+# Listed file-by-file rather than as `data/` so that data/gdsc/LICENSE.md can be
+# kept without relying on a negation inside an excluded directory.
+data/gdsc/*.csv.gz
+data/gdsc/*.csv
+data/gdsc/README.md
 
 # Dev-only files not needed in the runtime image
 tests/
@@ -22,6 +27,10 @@ conftest.py
 requirements-dev.txt
 .github/
 .ruff.toml
-LICENSE
 *.md
-data/gdsc/*.md
+
+# NOT excluded, deliberately: LICENSE and data/gdsc/LICENSE.md. MIT requires the
+# copyright and permission notice to accompany all copies, and the GDSC terms are
+# what permit redistributing a model trained from that data — so both belong in
+# any image we ship. (`*.md` above matches only the context root, not nested
+# paths, so it does not catch data/gdsc/LICENSE.md.)

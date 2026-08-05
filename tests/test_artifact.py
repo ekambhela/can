@@ -110,7 +110,7 @@ def test_per_drug_models_share_one_preprocessor_shape(bundle):
     models = list(bundle["per_drug_models"].values())
     assert models
 
-    row = {c: 0.0 for c in bundle["cell_cols"]}
+    row = dict.fromkeys(bundle["cell_cols"], 0.0)
     row["tissue"] = bundle["tissues"][0]
     X = pd.DataFrame([row])
 

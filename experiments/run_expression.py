@@ -17,13 +17,18 @@ import numpy as np
 from scipy.stats import ConstantInputWarning
 
 from experiments.harness import (
-    build_truth, compute_metrics, expression_pca, fmt, load_expression,
-    load_universe, run_perdrug,
+    build_truth,
+    compute_metrics,
+    expression_pca,
+    fmt,
+    load_expression,
+    load_universe,
+    run_perdrug,
 )
 from experiments.multitask import build_drug_features, run_multitask
 
 warnings.simplefilter("ignore", ConstantInputWarning)
-MT = dict(max_leaf_nodes=127, learning_rate=0.05, max_iter=600, l2_regularization=1.0)
+MT = {"max_leaf_nodes": 127, "learning_rate": 0.05, "max_iter": 600, "l2_regularization": 1.0}
 
 
 def split_covered(covered, seed=0, fracs=(0.64, 0.16, 0.20)):
@@ -75,9 +80,12 @@ def main():
     print(fmt("B curated+exprPCA50", pd_eval(cur + pc_cols, va)))
 
     print("\n--- multi-task+drugID (VAL) ---")
-    _, mc = mt_eval(cur, va); print(fmt("C curated", mc))
-    _, md = mt_eval(cur + pc_cols, va); print(fmt("D curated+exprPCA50", md))
-    _, me = mt_eval(cur + gene_cols, va); print(fmt("E curated+expr(raw706)", me))
+    _, mc = mt_eval(cur, va)
+    print(fmt("C curated", mc))
+    _, md = mt_eval(cur + pc_cols, va)
+    print(fmt("D curated+exprPCA50", md))
+    _, me = mt_eval(cur + gene_cols, va)
+    print(fmt("E curated+expr(raw706)", me))
 
     # choose expression variant by VAL spearman; ensemble on TEST
     use_raw = me["mean_spearman"] >= md["mean_spearman"]
@@ -97,7 +105,8 @@ def main():
     print("\n--- TISSUE-BLOCKED (whole tissues held out, covered lines) ---")
     from experiments.harness import tissue_blocked_split
     tb_tr, tb_te = tissue_blocked_split(U["tissue_arr"], seed=0)
-    tb_tr = np.array([i for i in tb_tr if mask[i]]); tb_te = np.array([i for i in tb_te if mask[i]])
+    tb_tr = np.array([i for i in tb_tr if mask[i]])
+    tb_te = np.array([i for i in tb_te if mask[i]])
     truth_b = build_truth(U["targets_raw"], ids, tb_tr)
     pcs_b = expression_pca(expr, tb_tr, k=50)
     U["feats"][pc_cols] = pcs_b.to_numpy()

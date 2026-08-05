@@ -15,3 +15,8 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "perf: timing-sensitive test (deselect with -m 'not perf')"
     )
+
+    # The suite deliberately hammers /api/predict* far harder than a real visitor
+    # would, so the rate limiter is off unless a test opts back in (see
+    # tests/test_rate_limit.py). Set before app import so the Limiter picks it up.
+    os.environ.setdefault("KARKIVE_RATE_LIMIT", "0")

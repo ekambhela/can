@@ -20,6 +20,9 @@ from contextlib import asynccontextmanager
 from fastapi import Body, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from model.predict import (
     BINARY_FEATURES,
@@ -42,6 +45,28 @@ log = logging.getLogger("karkive.app")
 
 MAX_BYTES = 2 * 1024 * 1024  # 2 MB upload cap
 MAX_COHORT_ROWS = 500        # cap batch size to keep responses snappy
+
+# Rate limits for the prediction routes. These are public, unauthenticated and
+# genuinely expensive — a single prediction is ~0.4 s of CPU and a full 500-row
+# cohort ~20 s — on a free-tier single-instance deploy with autoDeploy on a
+# custom domain. The limits are set well above interactive use (a visitor
+# clicking through every bundled example stays inside them) and well below what
+# it takes to saturate the box.
+PREDICT_RATE_LIMIT = os.environ.get("KARKIVE_PREDICT_RATE_LIMIT", "30/minute")
+BATCH_RATE_LIMIT = os.environ.get("KARKIVE_BATCH_RATE_LIMIT", "6/minute")
+
+# Keyed on client IP. Render terminates TLS in front of the app, so uvicorn is
+# started with --proxy-headers (see Dockerfile) — without that every request
+# would carry the proxy's address and the whole internet would share one bucket.
+#
+# Off by default under pytest (conftest.py), since the suite deliberately hammers
+# these routes; tests/test_rate_limit.py turns it back on for itself.
+limiter = Limiter(
+    key_func=get_remote_address,
+    headers_enabled=True,
+    enabled=os.environ.get("KARKIVE_RATE_LIMIT", "1").strip().lower()
+    not in {"0", "false", "off", "no"},
+)
 
 
 SAMPLES_DIR = os.path.join(BASE, "static", "samples")
@@ -68,6 +93,9 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Karkive", version="1.2.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE, "static")), name="static")
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # -> 429
 
 
 @app.exception_handler(ModelUnavailable)
@@ -134,7 +162,8 @@ def schema() -> dict:
 
 
 @app.post("/api/predict_form")
-async def api_predict_form(payload: dict = Body(...)) -> JSONResponse:
+@limiter.limit(PREDICT_RATE_LIMIT)
+async def api_predict_form(request: Request, payload: dict = Body(...)) -> JSONResponse:
     """Rank therapies for a single tumor described by a JSON field dict."""
     if not isinstance(payload, dict) or not payload:
         raise HTTPException(status_code=400, detail="Empty or invalid payload.")
@@ -144,7 +173,8 @@ async def api_predict_form(payload: dict = Body(...)) -> JSONResponse:
     except (ModelUnavailable, InvalidSample, HTTPException):
         raise  # structured 503/422 — must not be recast as a generic 422 below
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=422, detail=f"Could not score sample: {exc}")
+        raise HTTPException(status_code=422,
+                            detail=f"Could not score sample: {exc}") from exc
     result["parsed_sample"] = sample
     result["warnings"] = warnings
     result.update(_assumption_report(specified))
@@ -167,7 +197,8 @@ def metrics() -> dict:
 
 
 @app.post("/api/predict")
-async def api_predict(file: UploadFile = File(...)) -> JSONResponse:
+@limiter.limit(PREDICT_RATE_LIMIT)
+async def api_predict(request: Request, file: UploadFile = File(...)) -> JSONResponse:
     raw = await read_upload(file)
 
     try:
@@ -175,7 +206,8 @@ async def api_predict(file: UploadFile = File(...)) -> JSONResponse:
     except (ModelUnavailable, InvalidSample, HTTPException):
         raise  # structured 503/422 — must not be recast as a generic 422 below
     except Exception as exc:  # noqa: BLE001 — surface a clean parse error to the UI
-        raise HTTPException(status_code=422, detail=f"Could not parse sample: {exc}")
+        raise HTTPException(status_code=422,
+                            detail=f"Could not parse sample: {exc}") from exc
 
     result = predict(sample)   # ModelUnavailable -> 503 via the exception handler
 
@@ -188,7 +220,8 @@ async def api_predict(file: UploadFile = File(...)) -> JSONResponse:
 
 
 @app.post("/api/predict_batch")
-async def api_predict_batch(file: UploadFile = File(...)) -> JSONResponse:
+@limiter.limit(BATCH_RATE_LIMIT)
+async def api_predict_batch(request: Request, file: UploadFile = File(...)) -> JSONResponse:
     """Rank therapies for a whole cohort (one tumor per row)."""
     raw = await read_upload(file)
 
@@ -200,7 +233,8 @@ async def api_predict_batch(file: UploadFile = File(...)) -> JSONResponse:
     except (ModelUnavailable, InvalidSample, CohortTooLarge, HTTPException):
         raise  # structured 503/422/413 — must not be recast as a generic 422 below
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=422, detail=f"Could not parse cohort: {exc}")
+        raise HTTPException(status_code=422,
+                            detail=f"Could not parse cohort: {exc}") from exc
 
     result = predict_batch(samples)   # ModelUnavailable -> 503 via the exception handler
 

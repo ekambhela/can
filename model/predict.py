@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-from . import mtl, perdrug
+from . import mtl, perdrug, schema
 from .schema import (
     BINARY_FEATURES,
     ERBB2_AMP,
@@ -35,7 +35,6 @@ from .schema import (
     TISSUE_LABELS,
     build_reliability,
     summary_metrics,
-    feature_schema as _schema,
 )
 
 ARTIFACTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "artifacts")
@@ -337,7 +336,7 @@ def _raw_to_records(raw: bytes, filename: str, max_rows: int | None = None) -> l
         # cap doesn't apply to it — re-read in full if the limit truncated it.
         if limit is not None and len(df) >= limit:
             df = pd.read_csv(io.StringIO(text), sep=sep)
-        return [{str(k): v for k, v in zip(df.iloc[:, 0], df.iloc[:, 1])}]
+        return [{str(k): v for k, v in zip(df.iloc[:, 0], df.iloc[:, 1], strict=True)}]
 
     if max_rows is not None and len(df) > max_rows:
         raise CohortTooLarge(max_rows)
@@ -370,7 +369,7 @@ def sample_from_dict(d: dict) -> tuple[dict, list[str], list[str]]:
 
 
 def feature_schema() -> dict:
-    return _schema(_known_tissues())
+    return schema.feature_schema(_known_tissues())
 
 
 # ---------------------------------------------------------------------------
@@ -398,7 +397,7 @@ def _score(bundle: dict, sample: dict, drug_ids=None) -> dict:
     ids = drug_ids if drug_ids is not None else bundle["drug_ids"]
     vals = _score_pairs(bundle, [sample], [(0, d) for d in ids])
     id_to_name = bundle["id_to_name"]
-    return {id_to_name[d]: float(v) for d, v in zip(ids, vals)}
+    return {id_to_name[d]: float(v) for d, v in zip(ids, vals, strict=True)}
 
 
 def _pct(z: float) -> float:
@@ -595,7 +594,7 @@ def _score_cohort(bundle: dict, samples: list[dict], chunk: int = COHORT_CHUNK):
         vals = _score_pairs(bundle, block, pairs)
         per_sample = vals.reshape(len(block), len(ids))
         for row in per_sample:
-            yield {id_to_name[d]: float(v) for d, v in zip(ids, row)}
+            yield {id_to_name[d]: float(v) for d, v in zip(ids, row, strict=True)}
 
 
 def predict_batch(samples: list[dict], exclude_low_reliability: bool | None = None) -> dict:
@@ -607,7 +606,7 @@ def predict_batch(samples: list[dict], exclude_low_reliability: bool | None = No
     excl = EXCLUDE_LOW_RELIABILITY if exclude_low_reliability is None else exclude_low_reliability
 
     rows = []
-    for i, (s, zs) in enumerate(zip(samples, _score_cohort(bundle, samples))):
+    for i, (s, zs) in enumerate(zip(samples, _score_cohort(bundle, samples), strict=True)):
         candidates = list(zs)
         if excl:
             candidates = [n for n in candidates

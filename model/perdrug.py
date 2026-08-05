@@ -59,7 +59,7 @@ def predict_pairs(models, feats, truth, eval_idx, cell_cols, drug_ids, id_to_nam
         if ev.size == 0:
             continue
         p = models[name].predict(X.iloc[ev])
-        out[int(d)] = {int(i): float(pp) for i, pp in zip(ev, p)}
+        out[int(d)] = {int(i): float(pp) for i, pp in zip(ev, p, strict=True)}
     return out
 
 
@@ -97,7 +97,7 @@ def score_pairs(models, samples, cell_cols, pairs, id_to_name) -> np.ndarray:
             Xt = m.named_steps["pre"].transform(X)
         idx = [si for _k, si in items]
         preds = m.named_steps["gbm"].predict(Xt[idx])
-        for (k, _si), p in zip(items, preds):
+        for (k, _si), p in zip(items, preds, strict=True):
             out[k] = float(p)
     return out
 
@@ -106,5 +106,5 @@ def score_sample(models, sample, cell_cols, drug_ids, id_to_name) -> dict:
     """Score one tumor profile against drugs. Returns {drug_name: sensitivity}."""
     preds = score_pairs(models, [sample], cell_cols,
                         [(0, d) for d in drug_ids], id_to_name)
-    return {id_to_name[d]: float(p) for d, p in zip(drug_ids, preds)
+    return {id_to_name[d]: float(p) for d, p in zip(drug_ids, preds, strict=True)
             if not np.isnan(p)}

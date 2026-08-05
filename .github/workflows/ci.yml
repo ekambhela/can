@@ -22,7 +22,70 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Lint (ruff)
-        run: ruff check app.py model tests conftest.py
+        run: ruff check app.py model tests experiments conftest.py
 
       - name: Run tests (pytest)
         run: pytest -q
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t karkive:ci .
+
+      - name: Image ships the licenses, not the training data
+        run: |
+          # MIT requires the notice to travel with the distribution, and the GDSC
+          # terms are what permit redistributing a model trained from that data.
+          docker run --rm --entrypoint sh karkive:ci -c 'test -f LICENSE' \
+            || { echo "::error::LICENSE missing from image"; exit 1; }
+          docker run --rm --entrypoint sh karkive:ci -c 'test -f data/gdsc/LICENSE.md' \
+            || { echo "::error::GDSC LICENSE.md missing from image"; exit 1; }
+          # The serving path reads only the bundle, so the matrices must not ship.
+          if docker run --rm --entrypoint sh karkive:ci \
+               -c 'ls data/gdsc/*.csv.gz 2>/dev/null | grep -q .'; then
+            echo "::error::training data leaked into the image"; exit 1
+          fi
+
+      - name: Container runs as a non-root user
+        run: |
+          uid=$(docker run --rm --entrypoint sh karkive:ci -c 'id -u')
+          test "$uid" != "0" || { echo "::error::container runs as root"; exit 1; }
+          echo "running as uid $uid"
+
+      - name: Boot the container and check /api/health
+        run: |
+          docker run -d --name karkive -p 8000:8000 karkive:ci
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8000/api/health -o /tmp/health.json; then
+              echo "healthy after ${i}s"
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::/api/health never came up"
+          docker logs karkive
+          exit 1
+
+      - name: Serve a real prediction
+        run: |
+          printf 'tissue,BRAF_mut\nskin,1\n' > /tmp/sample.csv
+          curl -fsS -F "file=@/tmp/sample.csv" \
+            http://localhost:8000/api/predict -o /tmp/pred.json
+          python - <<'PY'
+          import json
+          d = json.load(open("/tmp/pred.json"))
+          assert d["ranked"], "no ranking returned"
+          print("recommendation:", d["recommendation"])
+          PY
+
+      - name: Container logs
+        if: always()
+        run: docker logs karkive || true
+
+      - name: Stop the container
+        if: always()
+        run: docker rm -f karkive || true

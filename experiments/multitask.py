@@ -14,8 +14,8 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 
-from model.gdsc import DRUGS
 from experiments.harness import build_truth
+from model.gdsc import DRUGS
 
 
 def _target_tokens(targets: str):
@@ -68,9 +68,13 @@ def build_long(U, truth, line_idx, cell_cols, drug_feat):
         mh = [multihot[d].get(c, 0.0) for c in target_cols]
         for i in line_set:
             if not np.isnan(t[i]):
-                rows_cell.append(cell[i]); tiss.append(tissue[i])
-                dpath.append(pathway[d]); dtgt.append(mh)
-                y.append(t[i]); ln.append(i); did.append(d)
+                rows_cell.append(cell[i])
+                tiss.append(tissue[i])
+                dpath.append(pathway[d])
+                dtgt.append(mh)
+                y.append(t[i])
+                ln.append(i)
+                did.append(d)
                 if id_bucket is not None:
                     dbk.append(id_bucket[d])
     X = pd.DataFrame(np.asarray(rows_cell, dtype=np.float32), columns=cell_cols)
@@ -96,15 +100,15 @@ def run_multitask(U, train_idx, eval_idx, cell_cols, truth=None, drug_feat=None,
         if c in Xtr.columns:
             Xev[c] = pd.Categorical(Xev[c], categories=Xtr[c].cat.categories)
 
-    params = dict(max_iter=400, learning_rate=0.06, l2_regularization=1.0,
-                  max_leaf_nodes=63, early_stopping=True, validation_fraction=0.1,
-                  random_state=0, categorical_features="from_dtype")
+    params = {"max_iter": 400, "learning_rate": 0.06, "l2_regularization": 1.0,
+                  "max_leaf_nodes": 63, "early_stopping": True, "validation_fraction": 0.1,
+                  "random_state": 0, "categorical_features": "from_dtype"}
     params.update(gbm)
     model = HistGradientBoostingRegressor(**params)
     model.fit(Xtr, ytr)
     p = model.predict(Xev)
 
     pred = {}
-    for d, i, pp in zip(did_ev, ln_ev, p):
+    for d, i, pp in zip(did_ev, ln_ev, p, strict=True):
         pred.setdefault(int(d), {})[int(i)] = float(pp)
     return pred, model

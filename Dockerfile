@@ -16,7 +16,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 # at build or boot, so the image builds fast and the container starts in seconds.
 COPY . .
 
+# Drop root. The app only ever reads its own files — it writes nothing and, since
+# training can't be triggered from a request (see model/predict.py), it never
+# needs to create artifacts either. --system: no login, no home, no password.
+RUN adduser --system --group --no-create-home karkive \
+    && chown -R karkive:karkive /app
+USER karkive
+
 EXPOSE 8000
 
 # Hosts inject the port via $PORT; default to 8000 for local `docker run`.
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# --proxy-headers so the app sees the real client IP behind the host's TLS
+# terminator; without it every request looks like it comes from the proxy and
+# the rate limiter in app.py would bucket all traffic together.
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

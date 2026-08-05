@@ -5,6 +5,16 @@ target-version = "py311"
 line-length = 100
 
 [lint]
-# Keep the sensible defaults; ignore module-import-position only inside __init__
-# style files if needed. Nothing extra enabled for now.
-extend-select = []
+# On top of the defaults (pyflakes F + a pycodestyle E subset):
+#   I  — import sorting, so import blocks stop drifting
+#   B  — bugbear: mutable default args, loop-variable capture, etc.
+#   UP — pyupgrade: keep syntax current for the pinned target-version
+#   C4 — flake8-comprehensions: dict()/list() literals and redundant casts
+extend-select = ["I", "B", "UP", "C4"]
+
+[lint.flake8-bugbear]
+# FastAPI declares request parameters as call-valued defaults — `file: UploadFile
+# = File(...)` is the framework's documented idiom, not the mutable-default bug
+# B008 exists to catch. Declared immutable rather than silenced per-line.
+extend-immutable-calls = ["fastapi.Body", "fastapi.File", "fastapi.Form",
+                          "fastapi.Query", "fastapi.Path", "fastapi.Depends"]

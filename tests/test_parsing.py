@@ -112,7 +112,7 @@ def test_explicit_zero_counts_as_specified():
 
 
 def test_fully_specified_sample_warns_about_nothing():
-    payload = {"tissue": "breast", **{f: 0 for f in P.BINARY_FEATURES}}
+    payload = {"tissue": "breast", **dict.fromkeys(P.BINARY_FEATURES, 0)}
     _s, warnings, specified = P.sample_from_dict(payload)
     assert set(specified) == set(P.BINARY_FEATURES)
     assert not any("not specified" in w for w in warnings)

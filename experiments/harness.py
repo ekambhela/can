@@ -35,6 +35,7 @@ from model.gdsc import (
     MUTATION_FEATURES,
 )
 
+
 # ---------------------------------------------------------------------------
 # Data loading
 # ---------------------------------------------------------------------------
@@ -186,7 +187,8 @@ def compute_metrics(pred: dict, truth: dict, drug_ids, eval_idx) -> dict:
         for i in eval_set:
             p = pr.get(i)
             if p is not None and not np.isnan(t[i]):
-                xs.append(p); ys.append(t[i])
+                xs.append(p)
+            ys.append(t[i])
         if len(xs) >= 5 and np.std(ys) > 1e-9 and np.std(xs) > 1e-9:
             rho = spearmanr(ys, xs).correlation
             per_rho.append(0.0 if np.isnan(rho) else float(rho))
@@ -229,9 +231,9 @@ def fmt(tag: str, m: dict) -> str:
 # Per-drug model runner (the baseline architecture)
 # ---------------------------------------------------------------------------
 def make_pipeline(tissue_vals, binary_cols, **gbm):
-    params = dict(max_iter=170, learning_rate=0.07, l2_regularization=1.5,
-                  max_leaf_nodes=13, early_stopping=True, validation_fraction=0.12,
-                  random_state=0)
+    params = {"max_iter": 170, "learning_rate": 0.07, "l2_regularization": 1.5,
+                  "max_leaf_nodes": 13, "early_stopping": True, "validation_fraction": 0.12,
+                  "random_state": 0}
     params.update(gbm)
     pre = ColumnTransformer([
         ("tissue", OneHotEncoder(categories=[tissue_vals], handle_unknown="ignore"), ["tissue"]),
@@ -259,7 +261,7 @@ def run_perdrug(U, train_idx, eval_idx, binary_cols, truth=None, **gbm) -> dict:
         pipe = make_pipeline(tissue_vals, binary_cols, **gbm)
         pipe.fit(Xall.iloc[tr], y[tr])
         p = pipe.predict(Xall.iloc[ev])
-        pred[d] = {int(i): float(pp) for i, pp in zip(ev, p)}
+        pred[d] = {int(i): float(pp) for i, pp in zip(ev, p, strict=True)}
     return pred
 
 
@@ -300,4 +302,4 @@ def prevalence_filter(feats, binary_cols, train_idx, min_frac=0.01):
     """Keep binary features present in >= min_frac of TRAIN lines (train-only stat)."""
     sub = feats.iloc[train_idx][binary_cols].to_numpy(dtype=np.float32)
     keep_mask = sub.mean(axis=0) >= min_frac
-    return [c for c, k in zip(binary_cols, keep_mask) if k]
+    return [c for c, k in zip(binary_cols, keep_mask, strict=True) if k]

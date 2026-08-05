@@ -9,22 +9,27 @@ import warnings
 import numpy as np
 from scipy.stats import ConstantInputWarning, spearmanr
 
-from model.gdsc import DRUGS
 from experiments.harness import (
-    build_truth, compute_metrics, fmt, load_universe, random_splits, run_perdrug,
+    build_truth,
+    compute_metrics,
+    fmt,
+    load_universe,
+    random_splits,
+    run_perdrug,
     tissue_blocked_split,
 )
 from experiments.multitask import build_drug_features, run_multitask
+from model.gdsc import DRUGS
 
 warnings.simplefilter("ignore", ConstantInputWarning)
 
 GRID = [
-    dict(max_leaf_nodes=63, learning_rate=0.06, max_iter=400, l2_regularization=1.0),
-    dict(max_leaf_nodes=127, learning_rate=0.05, max_iter=600, l2_regularization=1.0),
-    dict(max_leaf_nodes=127, learning_rate=0.03, max_iter=900, l2_regularization=1.0),
-    dict(max_leaf_nodes=255, learning_rate=0.05, max_iter=600, l2_regularization=1.0),
-    dict(max_leaf_nodes=127, learning_rate=0.05, max_iter=700, l2_regularization=2.0,
-         min_samples_leaf=40),
+    {"max_leaf_nodes": 63, "learning_rate": 0.06, "max_iter": 400, "l2_regularization": 1.0},
+    {"max_leaf_nodes": 127, "learning_rate": 0.05, "max_iter": 600, "l2_regularization": 1.0},
+    {"max_leaf_nodes": 127, "learning_rate": 0.03, "max_iter": 900, "l2_regularization": 1.0},
+    {"max_leaf_nodes": 255, "learning_rate": 0.05, "max_iter": 600, "l2_regularization": 1.0},
+    {"max_leaf_nodes": 127, "learning_rate": 0.05, "max_iter": 700, "l2_regularization": 2.0,
+         "min_samples_leaf": 40},
 ]
 
 
@@ -37,7 +42,8 @@ def per_drug_spearman(pred, truth, ids, eval_idx):
         xs, ys = [], []
         for i in eval_idx:
             if i in pr and not np.isnan(truth[d][i]):
-                xs.append(pr[i]); ys.append(truth[d][i])
+                xs.append(pr[i])
+                ys.append(truth[d][i])
         if len(xs) >= 8 and np.std(xs) > 1e-9 and np.std(ys) > 1e-9:
             r = spearmanr(ys, xs).correlation
             out[d] = 0.0 if np.isnan(r) else float(r)

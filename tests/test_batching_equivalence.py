@@ -116,7 +116,7 @@ def test_cohort_scoring_matches_single_scoring(bundle):
     batched = list(P._score_cohort(bundle, samples, chunk=3))   # forces >1 chunk
 
     assert len(batched) == len(samples)
-    for s, got in zip(samples, batched):
+    for s, got in zip(samples, batched, strict=True):
         want = P._score(bundle, s)
         assert set(got) == set(want)
         for n in want:
@@ -128,7 +128,7 @@ def test_cohort_chunking_is_invariant(bundle):
     samples = [_full(s) for s in SAMPLES]
     a = list(P._score_cohort(bundle, samples, chunk=1))
     b = list(P._score_cohort(bundle, samples, chunk=len(samples)))
-    for x, y in zip(a, b):
+    for x, y in zip(a, b, strict=True):
         assert max(abs(x[n] - y[n]) for n in x) < TOL
 
 
