@@ -294,20 +294,38 @@ def _score(bundle: dict, sample: dict, drug_ids=None) -> dict:
 
 
 def _pct(z: float) -> float:
+    """Sensitivity z -> percentile against the GDSC cell-line panel.
+
+    Surfaced as `match_percent`. Reads as: "predicted more sensitive to this
+    drug than X% of the cell lines the model was trained on". It is NOT a
+    probability of clinical response, and not a probability of anything about
+    this tumor — the panel is the reference, and the panel is cell lines.
+    """
     return float(np.clip(norm.cdf(z) * 100.0, 0.0, 100.0))
 
 
-def _confidence(zs: np.ndarray, resid_top: float = 0.6) -> float:
+def _separation_score(zs: np.ndarray, resid_top: float = 0.6) -> float:
     """How clearly the top pick separates from its *closest rivals* — the next
     few best drugs — relative to the model's own prediction noise.
 
-    Measuring against the whole drug panel is useless: the best drug is
-    always many std above the panel mean, so that saturates at ~1.0 for every
-    sample. What actually matters is whether #1 stands apart from the handful of
-    near-ties just behind it. We take the gap between the top drug and the mean
-    of ranks 2-6, in units of the top drug's held-out residual std, then map it
-    through the normal CDF. A clear standout -> high; a cluster of near-ties ->
-    ~0.5 (honestly uncertain which single drug is best)."""
+    WHAT THIS IS NOT: it is not P(the recommendation is correct). Nothing here
+    is calibrated against whether the top pick is actually the best drug for the
+    line — held-out top-1 accuracy is 11.1%, so a reading of 0.84 emphatically
+    does not mean "84% chance this is right". It is a *geometry* statistic about
+    one prediction vector: it can be high for a confidently wrong answer whenever
+    the model cleanly separates the wrong drug.
+
+    WHAT IT IS: the gap between the top drug and the mean of ranks 2-6, in units
+    of the top drug's held-out residual std, mapped through the normal CDF.
+    Measuring against the whole panel would be useless — the best drug is always
+    many std above the panel mean, so that saturates at ~1.0 for every sample.
+    What varies is whether #1 stands apart from the handful of near-ties just
+    behind it. A clear standout -> high; a cluster of near-ties -> ~0.5
+    (honestly uncertain which single drug is best).
+
+    Exposed as `separation_score`; also emitted as `confidence` for one release
+    for backwards compatibility. See _predict_impl.
+    """
     zs = np.asarray(zs, dtype=float)
     if zs.size < 2:
         return 0.5
@@ -368,7 +386,7 @@ def _predict_impl(sample: dict, top_k: int | None = 8) -> dict:
     if top_k:
         order = order[:top_k]
     zarr = np.array([zs[n] for n in names])
-    confidence = _confidence(zarr, resid.get(order[0], 0.6))
+    separation = _separation_score(zarr, resid.get(order[0], 0.6))
     pcts = {n: _pct(zs[n]) for n in names}
     margin = round((pcts[order[0]] - pcts[order[1]]) / 100.0, 4) if len(order) > 1 else 0.0
 
@@ -387,7 +405,12 @@ def _predict_impl(sample: dict, top_k: int | None = 8) -> dict:
         })
     return {
         "recommendation": ranked[0]["therapy"],
-        "confidence": round(confidence, 4),
+        # How far #1 stands from ranks 2-6 in residual-std units — NOT a
+        # probability that the pick is right. See _separation_score.
+        "separation_score": round(separation, 4),
+        # DEPRECATED alias for separation_score, kept one release for clients
+        # written against the old name. Read separation_score instead.
+        "confidence": round(separation, 4),
         "decision_margin": margin,
         "ranked": ranked,
         "model_metrics": summary_metrics(bundle.get("metrics", {})),
@@ -406,12 +429,15 @@ def predict_batch(samples: list[dict]) -> dict:
         order = sorted(zs, key=lambda n: zs[n], reverse=True)
         top, second = order[0], order[1]
         pcts = {n: _pct(zs[n]) for n in names}
+        separation = round(_separation_score(np.array(list(zs.values())),
+                                             resid.get(top, 0.6)), 4)
         rows.append({
             "index": i + 1,
             "cancer_type": TISSUE_LABELS.get(s.get("tissue", ""), s.get("tissue", "")),
             "recommendation": top, "drug_class": meta.get(top, {}).get("target", ""),
             "match_percent": round(pcts[top], 1),
-            "confidence": round(_confidence(np.array(list(zs.values())), resid.get(top, 0.6)), 4),
+            "separation_score": separation,
+            "confidence": separation,   # DEPRECATED alias — see _predict_impl
             "decision_margin": round((pcts[top] - pcts[second]) / 100.0, 4),
             "runner_up": second, "runner_up_percent": round(pcts[second], 1),
         })

@@ -108,7 +108,7 @@
                 <div class="pv-name">Dabrafenib</div>
                 <div class="pv-sub">BRAF inhibitor · 99th-pct sensitivity</div>
               </div>
-              <div class="pv-ring"><span>89%</span><small>confidence</small></div>
+              <div class="pv-ring"><span>89%</span><small>separation</small></div>
             </div>
             <div class="pv-meta"><span class="pv-margin">BRAF mutation · +61 pts</span></div>
             <ul class="pv-bars">
@@ -329,7 +329,7 @@
           <div class="parrow">→</div>
           <div class="pstep"><span class="pnum">2</span><span class="pico" style="--c:#1257c4"><svg class="ico"><use href="#ic-ai"/></svg></span><h4>Predict</h4><p>The model scores every therapy's sensitivity.</p></div>
           <div class="parrow">→</div>
-          <div class="pstep"><span class="pnum">3</span><span class="pico" style="--c:#d81b73"><svg class="ico"><use href="#ic-chart"/></svg></span><h4>Rank</h4><p>Therapies ordered, each with a confidence band.</p></div>
+          <div class="pstep"><span class="pnum">3</span><span class="pico" style="--c:#d81b73"><svg class="ico"><use href="#ic-chart"/></svg></span><h4>Rank</h4><p>Therapies ordered, each with an uncertainty band.</p></div>
           <div class="parrow">→</div>
           <div class="pstep"><span class="pnum">4</span><span class="pico" style="--c:#d98404"><svg class="ico"><use href="#ic-bulb"/></svg></span><h4>Explain</h4><p>The biomarkers behind the top match, quantified.</p></div>
         </div>
@@ -640,9 +640,11 @@
               </div>
               <div class="confidence">
                 <div class="conf-ring" id="confRing"><span id="confVal">·</span></div>
-                <small>confidence</small>
+                <small id="confLabel">separation<br>from next-best</small>
               </div>
             </div>
+
+            <div id="accuracyNote" class="accuracy-note" hidden></div>
 
             <div class="chips-row">
               <span class="metric-chip" id="marginChip" title="Sensitivity gap between the top two therapies"></span>
@@ -680,7 +682,10 @@
             <div class="table-wrap">
               <table class="cohort">
                 <thead>
-                  <tr><th>#</th><th>Cancer</th><th>Recommended therapy</th><th>Match</th><th>Conf.</th><th>Margin</th><th>Runner-up</th></tr>
+                  <tr><th>#</th><th>Cancer</th><th>Top-ranked therapy</th>
+                    <th title="Where this tumor sits in the range of GDSC cell lines for this drug — not a probability that a patient responds.">Sensitivity pctile</th>
+                    <th title="How far the top drug stands above the next few, in units of the model's own prediction error — not the chance that the pick is correct.">Separation</th>
+                    <th>Margin</th><th>Runner-up</th></tr>
                 </thead>
                 <tbody id="cohortBody"></tbody>
               </table>

@@ -14,6 +14,10 @@ let lastBatch = null;         // cached cohort result for CSV export
 let currentSample = null;     // parsed sample behind the current single result (for sharing)
 let FEATURE_LABELS = {};      // feature key -> friendly label, filled from /api/schema
 
+/* One-sentence explanations for the two numbers most likely to be misread. */
+const SEP_TIP = "How far the top drug stands above the next few, in units of the model's own prediction error — not the chance that the pick is correct.";
+const PCT_TIP = "Where this tumor sits in the range of GDSC cell lines for this drug — not a probability that a patient responds.";
+
 /* ---- live model stats (from /api/health) ---- */
 async function loadStats() {
   try {
@@ -289,25 +293,42 @@ function renderSingle(d) {
   const top = d.ranked[0];
   $("recName").textContent = top.therapy;
   $("recClass").textContent = top.drug_class;
-  $("recBand").textContent = (top.ci_low != null)
-    ? `predicted sensitivity ${top.match_percent}%  ·  10–90% interval ${top.ci_low}–${top.ci_high}%`
-    : `predicted sensitivity ${top.match_percent}%`;
+  // match_percent is a percentile against the GDSC cell-line panel, not a
+  // probability of response — say so rather than leaving "99.7%" to be read
+  // as "99.7% likely to work".
+  const bandEl = $("recBand");
+  bandEl.textContent = (top.ci_low != null)
+    ? `more sensitive than ${top.match_percent}% of cell lines  ·  10–90% interval ${top.ci_low}–${top.ci_high}%`
+    : `more sensitive than ${top.match_percent}% of cell lines`;
+  bandEl.title = PCT_TIP;
 
-  const confPct = Math.round(d.confidence * 100);
-  $("confVal").textContent = confPct + "%";
-  $("confRing").style.setProperty("--p", confPct + "%");
+  // separation_score is how far #1 sits from ranks 2–6 in the model's own noise
+  // units. It is NOT P(correct): top-1 accuracy is ~11%, so showing this as
+  // "confidence" invited reading 84% as "84% chance this is right".
+  const sep = d.separation_score != null ? d.separation_score : d.confidence;
+  const sepPct = Math.round(sep * 100);
+  $("confVal").textContent = sepPct + "%";
+  $("confRing").style.setProperty("--p", sepPct + "%");
+  $("confRing").title = SEP_TIP;
+  const sepLabel = $("confLabel");
+  if (sepLabel) sepLabel.title = SEP_TIP;
+
+  // The honest counterweight to any single-drug callout: how often the #1 pick
+  // is actually the best drug on held-out lines.
+  renderAccuracyNote(d.model_metrics || {});
 
   const marginPts = (d.decision_margin * 100).toFixed(1);
   const mc = $("marginChip");
   mc.textContent = `Decision margin: ${marginPts} pts over #2`;
   mc.className = "metric-chip " + (d.decision_margin >= 0.1 ? "good" : d.decision_margin >= 0.04 ? "mid" : "low");
 
-  // comic "burst" stamp: a punchy verdict word based on how sure the call is
+  // burst stamp: describes the separation, not a belief about correctness
   const headline = document.querySelector("#results .headline");
   if (headline) {
     let burst = headline.querySelector(".burst");
     if (!burst) { burst = document.createElement("span"); burst.className = "burst"; headline.appendChild(burst); }
-    burst.textContent = d.confidence >= 0.8 ? "High confidence" : d.confidence >= 0.62 ? "Moderate confidence" : "Low confidence";
+    burst.textContent = sep >= 0.8 ? "Clear separation" : sep >= 0.62 ? "Modest separation" : "Near-tie";
+    burst.title = SEP_TIP;
     burst.style.animation = "none"; void burst.offsetWidth; burst.style.animation = "";  // replay pop
   }
 
@@ -327,6 +348,22 @@ function renderSingle(d) {
   const warns = d.warnings || [];
   $("warnings").innerHTML = warns.map((w) => `<div class="warn">⚠ ${escapeHtml(w)}</div>`).join("");
   $("parsedSample").textContent = JSON.stringify(d.parsed_sample, null, 2);
+}
+
+/* Held-out accuracy shown next to the single-drug callout, so a big percentage
+   beside one drug name is read against how often that pick is actually best. */
+function renderAccuracyNote(m) {
+  const box = $("accuracyNote");
+  if (!box) return;
+  const t1 = m.top1_accuracy, t10 = m.top10_accuracy;
+  if (t1 == null && t10 == null) { box.hidden = true; return; }
+  const pct = (v) => Math.round(v * 100) + "%";
+  box.hidden = false;
+  box.innerHTML =
+    `On held-out cell lines this model's #1 pick is the single best drug ` +
+    `<b>${t1 != null ? pct(t1) : "—"}</b> of the time, and the best drug is ` +
+    `somewhere in its top 10 <b>${t10 != null ? pct(t10) : "—"}</b> of the time. ` +
+    `Treat the ranking as a shortlist, not a verdict.`;
 }
 
 /* What the model was actually told, versus what it filled in for you.
@@ -413,7 +450,7 @@ function renderBatch(d) {
       <td>${escapeHtml(r.cancer_type)}</td>
       <td><b>${escapeHtml(r.recommendation)}</b><small>${escapeHtml(r.drug_class)}</small></td>
       <td>${r.match_percent}%</td>
-      <td>${Math.round(r.confidence * 100)}%</td>
+      <td>${Math.round((r.separation_score != null ? r.separation_score : r.confidence) * 100)}%</td>
       <td><span class="dot ${mcls}"></span>${(r.decision_margin * 100).toFixed(0)}</td>
       <td class="muted">${escapeHtml(r.runner_up)} · ${r.runner_up_percent}%</td>
     </tr>`;
@@ -447,7 +484,7 @@ function flashShare(msg) {
 $("downloadCsv").addEventListener("click", () => {
   if (!lastBatch) return;
   const head = ["index", "cancer_type", "recommendation", "drug_class",
-    "match_percent", "confidence", "decision_margin", "runner_up", "runner_up_percent"];
+    "match_percent", "separation_score", "decision_margin", "runner_up", "runner_up_percent"];
   const lines = [head.join(",")];
   lastBatch.rows.forEach((r) => {
     lines.push(head.map((k) => csvCell(r[k])).join(","));
