@@ -24,16 +24,16 @@ import pandas as pd
 from scipy.stats import norm
 
 from . import mtl, perdrug
-from .gdsc import (
+from .schema import (
     BINARY_FEATURES,
     ERBB2_AMP,
     FEATURE_LABEL,
     MSI,
     MUTATION_FEATURES,
     TISSUE_LABELS,
+    summary_metrics,
     feature_schema as _schema,
 )
-from .train import summary_metrics
 
 ARTIFACTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "artifacts")
 MODEL_PATH = os.path.join(ARTIFACTS, "model.joblib")

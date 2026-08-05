@@ -26,8 +26,6 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 
-from .gdsc import DRUGS
-
 CAT_COLS = ["tissue", "drug_pathway", "drug_id"]
 GBM_PARAMS = dict(max_leaf_nodes=127, learning_rate=0.05, max_iter=600,
                   l2_regularization=1.0, early_stopping=True,
@@ -47,7 +45,13 @@ def build_drug_features(drug_ids, obs_counts=None, min_drugs=3, id_cap=254) -> d
     `obs_counts` {drug_id: n train observations} decides which drugs keep their
     own identity category (the `id_cap` most-screened) vs fall into 'OTHER',
     keeping cardinality under HistGBM's 255-category limit.
+
+    Training-time only: the resulting dict is stored in the bundle, so serving
+    never calls this. The data-layer import is therefore deferred into the body —
+    importing model.mtl must not pull in `data/` (see model/schema.py).
     """
+    from .gdsc import DRUGS
+
     tok_counts = Counter()
     per_drug = {}
     for d in drug_ids:

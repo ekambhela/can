@@ -30,6 +30,10 @@ from sklearn.metrics import r2_score
 
 from . import mtl, perdrug
 from .gdsc import DRUG_COL, DRUGS, THERAPY_CLASS, load_frame
+from .schema import (  # noqa: F401 — summary_metrics re-exported for callers
+    PER_DRUG_METRIC_KEYS,
+    summary_metrics,
+)
 
 # ensemble weight on the per-drug component (rest on multi-task); chosen on the
 # validation split — see experiments/run_ensemble.py.
@@ -236,22 +240,26 @@ def run_training(seed: int = 0, max_lines: int | None = None,
         "drug_ids": drug_ids,
         "id_to_name": id_to_name,
         "name_to_id": {v: k for k, v in id_to_name.items()},
-        "drug_meta": {DRUGS[d][0]: {"id": d, "target": THERAPY_CLASS[DRUGS[d][0]]} for d in drug_ids},
+        # Complete drug annotation, so the serving path never needs data/.
+        # `target` is the short display class (kept under that key for
+        # compatibility); `pathway` and `targets` are the raw GDSC annotation.
+        "drug_meta": {
+            DRUGS[d][0]: {
+                "id": d,
+                "name": DRUGS[d][0],
+                "target": THERAPY_CLASS[DRUGS[d][0]],
+                "pathway": DRUGS[d][1],
+                "targets": DRUGS[d][2],
+            }
+            for d in drug_ids
+        },
         "tissues": tissues,
         "resid_std": resid,
         "metrics": metrics,
-        "version": 7,
+        "version": 8,
         "data": "GDSC1 (release 17) + GDSC2 (25Feb20); ensemble of a per-drug model "
                 "and a multi-task (cell line, drug) model, split and scaled by cell line.",
     }
-
-
-PER_DRUG_METRIC_KEYS = ("per_drug_spearman", "per_drug_r2")
-
-
-def summary_metrics(metrics: dict) -> dict:
-    """Metrics minus the big per-drug dicts — safe for API responses."""
-    return {k: v for k, v in metrics.items() if k not in PER_DRUG_METRIC_KEYS}
 
 
 def main(seed: int = 0) -> dict:

@@ -10,6 +10,11 @@ artifacts/dataset_*.csv
 *.log
 docs/
 
+# Training data. The serving path reads only artifacts/model.joblib (the drug
+# panel, tissue list and drug annotation are all in the bundle), so the ~1.9 MB
+# of GDSC matrices are training-time only. See model/schema.py.
+data/
+
 # Dev-only files not needed in the runtime image
 tests/
 experiments/

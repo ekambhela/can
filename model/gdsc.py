@@ -20,24 +20,24 @@ import re as _re
 
 import pandas as pd
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "gdsc")
+# Feature names, labels and the input schema are shared with the serving path and
+# carry no data dependency, so they live in model/schema.py. Re-exported here so
+# training code and experiments can keep importing them from the data layer.
+from .schema import (  # noqa: F401 — re-exported for training code / experiments
+    BINARY_FEATURES,
+    ERBB2_AMP,
+    FEATURE_LABEL,
+    MSI,
+    MUTATION_FEATURES,
+    MUTATION_GENES,
+    TISSUE_LABELS,
+    feature_schema,
+)
 
-# --- curated genomic features the model + UI use -------------------------------
-# Driver-gene mutation flags present in the GDSC feature matrix.
-MUTATION_GENES = [
-    "TP53", "KRAS", "EGFR", "BRAF", "ALK", "ERBB2", "BRCA1", "BRCA2",
-    "PIK3CA", "PTEN", "NRAS", "APC", "CDKN2A",
-]
-MUTATION_FEATURES = [f"{g}_mut" for g in MUTATION_GENES]
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "gdsc")
 
 # ERBB2 (HER2) amplification is a copy-number feature in GDSC.
 ERBB2_AMP_COL = "gain_cnaPANCAN301_(CDK12,ERBB2,MED24)"
-ERBB2_AMP = "ERBB2_amp"          # friendly key used everywhere in the app
-
-MSI = "MSI"                       # microsatellite instability (0/1)
-
-# The full ordered binary feature list (tissue is handled separately, one-hot).
-BINARY_FEATURES = MUTATION_FEATURES + [ERBB2_AMP, MSI]
 
 # --- therapy panel: the full GDSC compound set, named from the GDSC drug list --
 # The drug annotation (drug_id -> name / targets / target pathway) is the public
@@ -116,30 +116,6 @@ def _class_label(pathway: str, targets: str) -> str:
 
 THERAPY_CLASS = {DRUGS[i][0]: _class_label(DRUGS[i][1], DRUGS[i][2]) for i in DRUGS}
 
-# --- friendly labels -----------------------------------------------------------
-TISSUE_LABELS = {
-    "lung_NSCLC": "Lung (NSCLC)", "lung_SCLC": "Lung (SCLC)", "lung": "Lung (other)",
-    "leukemia": "Leukemia", "lymphoma": "Lymphoma", "myeloma": "Myeloma",
-    "aero_dig_tract": "Head & neck / aerodigestive", "skin": "Skin / melanoma",
-    "nervous_system": "CNS / nervous system", "neuroblastoma": "Neuroblastoma",
-    "breast": "Breast", "large_intestine": "Colorectal", "ovary": "Ovarian",
-    "bone": "Bone / sarcoma", "kidney": "Kidney", "pancreas": "Pancreas",
-    "stomach": "Stomach / gastric", "soft_tissue": "Soft tissue", "Bladder": "Bladder",
-    "liver": "Liver", "thyroid": "Thyroid", "cervix": "Cervix",
-    "endometrium": "Endometrium", "prostate": "Prostate", "biliary_tract": "Biliary tract",
-    "urogenital_system_other": "Urogenital (other)", "testis": "Testis",
-}
-
-FEATURE_LABEL = {
-    "TP53_mut": "TP53 mutation", "KRAS_mut": "KRAS mutation", "EGFR_mut": "EGFR mutation",
-    "BRAF_mut": "BRAF mutation", "ALK_mut": "ALK mutation", "ERBB2_mut": "ERBB2/HER2 mutation",
-    "BRCA1_mut": "BRCA1 mutation", "BRCA2_mut": "BRCA2 mutation", "PIK3CA_mut": "PIK3CA mutation",
-    "PTEN_mut": "PTEN mutation", "NRAS_mut": "NRAS mutation", "APC_mut": "APC mutation",
-    "CDKN2A_mut": "CDKN2A mutation", "ERBB2_amp": "ERBB2 / HER2 amplification",
-    "MSI": "MSI-high (microsatellite instability)",
-}
-
-
 def load_frame() -> tuple[pd.DataFrame, dict, list[str]]:
     """Return (features_df, {drug_col: raw_logIC50_series}, tissue_categories).
 
@@ -181,16 +157,3 @@ def load_frame() -> tuple[pd.DataFrame, dict, list[str]]:
 
     tissues = sorted(df["TISSUE_FACTOR"].astype(str).unique().tolist())
     return feats, targets, tissues
-
-
-def feature_schema(tissues: list[str]) -> dict:
-    """Input-field schema for the manual-entry form / API."""
-    return {
-        "tissues": [{"key": t, "label": TISSUE_LABELS.get(t, t.replace("_", " ").title())}
-                    for t in tissues],
-        "mutations": [{"key": f, "label": FEATURE_LABEL.get(f, f)} for f in MUTATION_FEATURES],
-        "extras": [
-            {"key": ERBB2_AMP, "label": FEATURE_LABEL[ERBB2_AMP]},
-            {"key": MSI, "label": FEATURE_LABEL[MSI]},
-        ],
-    }
