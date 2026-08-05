@@ -458,6 +458,17 @@ html.js .preview.in .pv-bar i { animation: grow 1.1s cubic-bezier(.2, .7, .2, 1)
 .parsed pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 12px; overflow: auto; color: var(--ink-2); }
 #warnings .warn, #batchWarnings .warn { margin: 10px 0; padding: 10px 12px; border-radius: 9px; font-size: 12.5px; background: #fdf6ec; border: 1px solid #f0dcb8; color: #92610e; }
 
+/* Drugs the model predicts badly (29 of 369 have held-out R² below zero) must
+   not look identical to ones it predicts well. */
+.reliability-note { margin: 14px 0 2px; padding: 10px 13px; border-radius: 10px;
+  background: rgba(220, 38, 38, .06); border: 1px solid rgba(220, 38, 38, .22);
+  color: #a2312a; font-size: 12.5px; line-height: 1.65; }
+.reliability-note b { font-weight: 750; }
+.rel-badge { display: inline-block; margin: 0 6px 0 0; padding: 1px 7px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; vertical-align: 1px; white-space: nowrap; cursor: help; }
+.rel-badge.low { background: rgba(220, 38, 38, .1); border: 1px solid rgba(220, 38, 38, .3); color: #b3261e; }
+.rel-badge.mid { background: rgba(196, 125, 21, .1); border: 1px solid rgba(196, 125, 21, .28); color: #92610e; }
+
 /* Held-out accuracy, adjacent to the single-drug callout. A 99.7% next to one
    drug name needs the 11% top-1 accuracy in the same eyeline. */
 .accuracy-note { margin: 14px 0 2px; padding: 10px 13px; border-radius: 10px;

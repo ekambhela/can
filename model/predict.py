@@ -32,6 +32,7 @@ from .schema import (
     MSI,
     MUTATION_FEATURES,
     TISSUE_LABELS,
+    build_reliability,
     summary_metrics,
     feature_schema as _schema,
 )
@@ -119,6 +120,34 @@ def get_bundle() -> dict:
         raise ModelUnavailable(
             f"Model could not be loaded ({type(exc).__name__}: {exc})"
         ) from exc
+
+
+# Drugs the model predicts poorly are flagged, not hidden, by default: a
+# clinician-facing shortlist that silently drops candidates is its own kind of
+# dishonesty. Set KARKIVE_EXCLUDE_LOW_RELIABILITY=1 to drop them from rankings
+# instead.
+EXCLUDE_LOW_RELIABILITY = os.environ.get("KARKIVE_EXCLUDE_LOW_RELIABILITY", "") \
+    .strip().lower() in {"1", "true", "yes", "on"}
+
+
+def reliability_map() -> dict:
+    """{drug_name: {tier, spearman, r2}} for the loaded model.
+
+    Prefers the bundle's stored table, falling back to deriving it from the
+    bundle's own held-out metrics — bundles trained before this existed (the
+    shipped v7 artifact) still get tiers without a retrain.
+    """
+    bundle = get_bundle()
+    stored = bundle.get("reliability")
+    if stored:
+        return stored
+    # Memoized onto the bundle itself, so the cache is scoped to the loaded
+    # object and a reload invalidates it for free.
+    derived = bundle.get("_derived_reliability")
+    if derived is None:
+        derived = build_reliability(bundle.get("metrics", {}))
+        bundle["_derived_reliability"] = derived
+    return derived
 
 
 def api_metrics() -> dict:
@@ -362,30 +391,36 @@ def _explain(sample: dict, therapy: str, bundle: dict) -> dict:
     return {"supporting": supporting, "cautions": cautions}
 
 
-def predict(sample: dict, top_k: int | None = 8) -> dict:
+def predict(sample: dict, top_k: int | None = 8, exclude_low_reliability: bool | None = None) -> dict:
     """Rank drugs for a tumor profile. Results are cached per (bundle, sample) so
     repeated/identical inputs — e.g. the built-in example files — are instant."""
     items = tuple(sorted(sample.items()))
+    excl = EXCLUDE_LOW_RELIABILITY if exclude_low_reliability is None else exclude_low_reliability
     # id(bundle) keys the cache to the loaded model, so a reload invalidates it.
-    return dict(_predict_cached(id(get_bundle()), items, top_k))
+    return dict(_predict_cached(id(get_bundle()), items, top_k, excl))
 
 
 @lru_cache(maxsize=2048)
-def _predict_cached(_bundle_id: int, items: tuple, top_k: int | None) -> dict:
-    return _predict_impl(dict(items), top_k)
+def _predict_cached(_bundle_id: int, items: tuple, top_k: int | None, excl: bool) -> dict:
+    return _predict_impl(dict(items), top_k, excl)
 
 
-def _predict_impl(sample: dict, top_k: int | None = 8) -> dict:
+def _predict_impl(sample: dict, top_k: int | None = 8, excl: bool = False) -> dict:
     bundle = get_bundle()
     meta = bundle["drug_meta"]
     resid = bundle.get("resid_std", {})
+    rel = reliability_map()
 
     zs = _score(bundle, sample)   # {drug_name: blended sensitivity}
     names = list(zs.keys())
-    order = sorted(names, key=lambda n: zs[n], reverse=True)
+    ranked_names = names
+    if excl:
+        kept = [n for n in names if rel.get(n, {}).get("tier") != "low"]
+        ranked_names = kept or names   # never return an empty ranking
+    order = sorted(ranked_names, key=lambda n: zs[n], reverse=True)
     if top_k:
         order = order[:top_k]
-    zarr = np.array([zs[n] for n in names])
+    zarr = np.array([zs[n] for n in ranked_names])
     separation = _separation_score(zarr, resid.get(order[0], 0.6))
     pcts = {n: _pct(zs[n]) for n in names}
     margin = round((pcts[order[0]] - pcts[order[1]]) / 100.0, 4) if len(order) > 1 else 0.0
@@ -394,12 +429,21 @@ def _predict_impl(sample: dict, top_k: int | None = 8) -> dict:
     for rank, n in enumerate(order, start=1):
         rs = resid.get(n, 0.6)
         exp = _explain(sample, n, bundle)
+        r = rel.get(n, {})
+        tier = r.get("tier", "unknown")
         ranked.append({
             "rank": rank, "therapy": n, "drug_class": meta.get(n, {}).get("target", ""),
             "sensitivity": round(zs[n], 4),
             "match_percent": round(pcts[n], 1),
             "ci_low": round(_pct(zs[n] - rs), 1),
             "ci_high": round(_pct(zs[n] + rs), 1),
+            # How well the model predicts THIS drug on held-out lines. 34 of 369
+            # drugs are "low" (R^2 below zero or no ranking signal) and could
+            # otherwise reach rank 1 looking exactly like a well-predicted one.
+            "reliability": tier,
+            "low_reliability": tier == "low",
+            "reliability_r2": r.get("r2"),
+            "reliability_spearman": r.get("spearman"),
             "rationale": [s["text"] for s in exp["supporting"][:2]],
             "supporting": exp["supporting"], "cautions": exp["cautions"],
         })
@@ -413,20 +457,28 @@ def _predict_impl(sample: dict, top_k: int | None = 8) -> dict:
         "confidence": round(separation, 4),
         "decision_margin": margin,
         "ranked": ranked,
+        "low_reliability_count": sum(1 for r in ranked if r["low_reliability"]),
+        "excluded_low_reliability": bool(excl),
         "model_metrics": summary_metrics(bundle.get("metrics", {})),
     }
 
 
-def predict_batch(samples: list[dict]) -> dict:
+def predict_batch(samples: list[dict], exclude_low_reliability: bool | None = None) -> dict:
     bundle = get_bundle()
     meta = bundle["drug_meta"]
     resid = bundle.get("resid_std", {})
+    rel = reliability_map()
     names = [bundle["id_to_name"][d] for d in bundle["drug_ids"]]
+    excl = EXCLUDE_LOW_RELIABILITY if exclude_low_reliability is None else exclude_low_reliability
 
     rows = []
     for i, s in enumerate(samples):
         zs = _score(bundle, s)
-        order = sorted(zs, key=lambda n: zs[n], reverse=True)
+        candidates = list(zs)
+        if excl:
+            candidates = [n for n in candidates
+                          if rel.get(n, {}).get("tier") != "low"] or list(zs)
+        order = sorted(candidates, key=lambda n: zs[n], reverse=True)
         top, second = order[0], order[1]
         pcts = {n: _pct(zs[n]) for n in names}
         separation = round(_separation_score(np.array(list(zs.values())),
@@ -438,8 +490,12 @@ def predict_batch(samples: list[dict]) -> dict:
             "match_percent": round(pcts[top], 1),
             "separation_score": separation,
             "confidence": separation,   # DEPRECATED alias — see _predict_impl
+            "reliability": rel.get(top, {}).get("tier", "unknown"),
+            "low_reliability": rel.get(top, {}).get("tier") == "low",
             "decision_margin": round((pcts[top] - pcts[second]) / 100.0, 4),
             "runner_up": second, "runner_up_percent": round(pcts[second], 1),
         })
     return {"n": len(rows), "therapies": names, "rows": rows,
+            "low_reliability_count": sum(1 for r in rows if r["low_reliability"]),
+            "excluded_low_reliability": bool(excl),
             "model_metrics": summary_metrics(bundle.get("metrics", {}))}

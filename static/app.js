@@ -316,6 +316,7 @@ function renderSingle(d) {
   // The honest counterweight to any single-drug callout: how often the #1 pick
   // is actually the best drug on held-out lines.
   renderAccuracyNote(d.model_metrics || {});
+  renderReliabilityNote(d, top);
 
   const marginPts = (d.decision_margin * 100).toFixed(1);
   const mc = $("marginChip");
@@ -348,6 +349,22 @@ function renderSingle(d) {
   const warns = d.warnings || [];
   $("warnings").innerHTML = warns.map((w) => `<div class="warn">⚠ ${escapeHtml(w)}</div>`).join("");
   $("parsedSample").textContent = JSON.stringify(d.parsed_sample, null, 2);
+}
+
+/* If the top pick is one the model predicts badly, say so at the top — not only
+   as a small badge further down the list. */
+function renderReliabilityNote(d, top) {
+  const box = $("reliabilityNote");
+  if (!box) return;
+  const others = (d.low_reliability_count || 0) - (top.low_reliability ? 1 : 0);
+  if (!top.low_reliability && others <= 0) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = top.low_reliability
+    ? `⚠ <b>${escapeHtml(top.therapy)}</b> is one of the drugs this model predicts poorly `
+      + `(held-out R²=${top.reliability_r2}, Spearman=${top.reliability_spearman}). `
+      + `Its position at the top of this ranking is weakly supported.`
+    : `⚠ ${others} drug${others === 1 ? " is" : "s are"} flagged as poorly predicted `
+      + `in the ranking below.`;
 }
 
 /* Held-out accuracy shown next to the single-drug callout, so a big percentage
@@ -416,6 +433,15 @@ function renderFactor(f) {
   return `<li><div class="factor-head"><b>${escapeHtml(f.label)}</b>${eff}</div><span>${escapeHtml(f.text)}</span></li>`;
 }
 
+/* Plain-language tooltip for a drug's held-out reliability. */
+function relTip(t) {
+  const r2 = t.reliability_r2, rho = t.reliability_spearman;
+  const nums = (r2 != null && rho != null) ? ` (held-out R²=${r2}, Spearman=${rho})` : "";
+  return t.low_reliability
+    ? `The model predicts this drug poorly on held-out cell lines${nums} — treat its position in the ranking with caution.`
+    : `The model predicts this drug with limited accuracy on held-out cell lines${nums}.`;
+}
+
 function renderRankRow(t) {
   // interval markers relative to the 0–100 bar
   let band = "";
@@ -425,10 +451,16 @@ function renderRankRow(t) {
   }
   const caution = (t.cautions && t.cautions.length)
     ? `<span class="cau-badge" title="${escapeHtml(t.cautions.map((c) => c.label).join(', '))}">⚠ ${t.cautions.length}</span>` : "";
+  // Drugs the model predicts badly must not look identical to ones it predicts
+  // well. R² below zero means worse than always guessing this drug's mean.
+  const rel = t.low_reliability
+    ? `<span class="rel-badge low" title="${escapeHtml(relTip(t))}">unreliable</span>`
+    : (t.reliability === "moderate"
+        ? `<span class="rel-badge mid" title="${escapeHtml(relTip(t))}">limited data</span>` : "");
   return `
     <li>
       <span class="rank-num">${t.rank}</span>
-      <span class="rank-name"><b>${escapeHtml(t.therapy)}</b> ${caution}<small>${escapeHtml(t.drug_class)}</small></span>
+      <span class="rank-name"><b>${escapeHtml(t.therapy)}</b> ${rel}${caution}<small>${escapeHtml(t.drug_class)}</small></span>
       <span class="bar-wrap">
         <span class="bar">${band}<i style="width:${t.match_percent}%"></i></span>
         <span class="bar-val">${t.match_percent}%</span>
@@ -448,7 +480,9 @@ function renderBatch(d) {
     return `<tr>
       <td>${r.index}</td>
       <td>${escapeHtml(r.cancer_type)}</td>
-      <td><b>${escapeHtml(r.recommendation)}</b><small>${escapeHtml(r.drug_class)}</small></td>
+      <td><b>${escapeHtml(r.recommendation)}</b>${r.low_reliability
+        ? ' <span class="rel-badge low" title="The model predicts this drug poorly on held-out cell lines.">unreliable</span>' : ""
+        }<small>${escapeHtml(r.drug_class)}</small></td>
       <td>${r.match_percent}%</td>
       <td>${Math.round((r.separation_score != null ? r.separation_score : r.confidence) * 100)}%</td>
       <td><span class="dot ${mcls}"></span>${(r.decision_margin * 100).toFixed(0)}</td>

@@ -32,6 +32,7 @@ from . import mtl, perdrug
 from .gdsc import DRUG_COL, DRUGS, THERAPY_CLASS, load_frame
 from .schema import (  # noqa: F401 — summary_metrics re-exported for callers
     PER_DRUG_METRIC_KEYS,
+    build_reliability,
     summary_metrics,
 )
 
@@ -255,6 +256,10 @@ def run_training(seed: int = 0, max_lines: int | None = None,
         },
         "tissues": tissues,
         "resid_std": resid,
+        # Per-drug held-out reliability tier, so serving can flag drugs the model
+        # predicts badly (29 of 369 have R^2 < 0) without recomputing it per
+        # request. Derived from `metrics`, so it cannot drift from them.
+        "reliability": build_reliability(metrics),
         "metrics": metrics,
         "version": 8,
         "data": "GDSC1 (release 17) + GDSC2 (25Feb20); ensemble of a per-drug model "

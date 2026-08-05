@@ -74,8 +74,49 @@ def feature_schema(tissues: list[str]) -> dict:
     }
 
 
+# --- per-drug reliability ------------------------------------------------------
+# The panel is not uniformly predictable. On the held-out split, per-drug R^2
+# ranges from -0.274 to 0.495 (median 0.188) and 29 of 369 drugs land BELOW
+# ZERO — the model predicts them worse than always guessing that drug's mean.
+# Those drugs can still surface at rank 1, previously with exactly the same
+# visual treatment as a drug the model predicts well.
+#
+# Thresholds are read off the shipped metrics distribution: R^2 < 0 is the
+# meaningful cliff, and rho < 0.15 catches drugs with no usable ranking signal
+# even where R^2 scrapes above zero. "moderate" is roughly the lowest quartile
+# (p25: R^2 0.086, rho 0.308).
+RELIABILITY_TIERS = ("high", "moderate", "low", "unknown")
+
+
+def reliability_tier(spearman: float | None, r2: float | None) -> str:
+    """Bucket one drug's held-out performance. See RELIABILITY_TIERS."""
+    if spearman is None or r2 is None:
+        return "unknown"
+    if r2 < 0.0 or spearman < 0.15:
+        return "low"
+    if r2 < 0.15 or spearman < 0.30:
+        return "moderate"
+    return "high"
+
+
+def build_reliability(metrics: dict) -> dict:
+    """{drug_name: {tier, spearman, r2}} from a metrics dict.
+
+    Derived rather than stored separately so it can never drift from the
+    per-drug metrics it summarizes, and so bundles trained before this existed
+    still get tiers (model/predict.py falls back to computing it on load).
+    """
+    rho = metrics.get("per_drug_spearman", {}) or {}
+    r2 = metrics.get("per_drug_r2", {}) or {}
+    return {
+        name: {"tier": reliability_tier(rho.get(name), r2.get(name)),
+               "spearman": rho.get(name), "r2": r2.get(name)}
+        for name in set(rho) | set(r2)
+    }
+
+
 # --- metrics shaping -----------------------------------------------------------
-PER_DRUG_METRIC_KEYS = ("per_drug_spearman", "per_drug_r2")
+PER_DRUG_METRIC_KEYS = ("per_drug_spearman", "per_drug_r2", "per_drug_reliability")
 
 
 def summary_metrics(metrics: dict) -> dict:
