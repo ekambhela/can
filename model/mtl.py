@@ -139,30 +139,48 @@ def predict_pairs(model, cat_levels, feats, tissue_arr, truth, eval_idx,
 # ---------------------------------------------------------------------------
 # Inference for a single sample (used by model/predict.py)
 # ---------------------------------------------------------------------------
-def score_sample(bundle: dict, sample: dict, drug_ids=None) -> dict:
-    """Score one tumor profile against drugs. Returns {drug_name: sensitivity}."""
+def score_pairs(bundle: dict, samples: list[dict], pairs) -> np.ndarray:
+    """Score arbitrary (sample, drug) pairs in ONE predict call.
+
+    `pairs` is [(sample_index, drug_id), ...] indexing into `samples`. Returns
+    predictions aligned to `pairs`.
+
+    Boosted-tree prediction is row-independent, so batching is exact — the point
+    is purely to stop paying per-call overhead 240 times per request (the
+    explanation pass) or 184,500 times per cohort.
+    """
     model = bundle["model"]
     cell_cols = bundle["cell_cols"]
     drug_feat = bundle["drug_feat"]
     cat_levels = bundle["cat_levels"]
-    id_to_name = bundle["id_to_name"]
-    ids = drug_ids if drug_ids is not None else bundle["drug_ids"]
-
     target_cols = drug_feat["target_cols"]
-    cell_vec = [float(sample.get(c, 0.0)) for c in cell_cols]
-    tissue = sample.get("tissue")
+    multihot, pathway, id_bucket = (drug_feat["multihot"], drug_feat["pathway"],
+                                    drug_feat["id_bucket"])
+
+    cell_vecs = [[float(s.get(c, 0.0)) for c in cell_cols] for s in samples]
+    mh_cache: dict = {}
 
     rows, tiss, dpath, dbk = [], [], [], []
-    for d in ids:
-        mh = [drug_feat["multihot"][d].get(c, 0.0) for c in target_cols]
-        rows.append(cell_vec + mh)
-        tiss.append(tissue)
-        dpath.append(drug_feat["pathway"][d])
-        dbk.append(drug_feat["id_bucket"][d])
+    for si, d in pairs:
+        mh = mh_cache.get(d)
+        if mh is None:
+            mh = mh_cache[d] = [multihot[d].get(c, 0.0) for c in target_cols]
+        rows.append(cell_vecs[si] + mh)
+        tiss.append(samples[si].get("tissue"))
+        dpath.append(pathway[d])
+        dbk.append(id_bucket[d])
+
     cols = list(cell_cols) + list(target_cols)
     X = pd.DataFrame(np.asarray(rows, dtype=np.float32), columns=cols)
     X["tissue"] = _as_cat(tiss, cat_levels["tissue"])
     X["drug_pathway"] = _as_cat(dpath, cat_levels["drug_pathway"])
     X["drug_id"] = _as_cat(dbk, cat_levels["drug_id"])
-    preds = model.predict(X)
+    return model.predict(X)
+
+
+def score_sample(bundle: dict, sample: dict, drug_ids=None) -> dict:
+    """Score one tumor profile against drugs. Returns {drug_name: sensitivity}."""
+    ids = drug_ids if drug_ids is not None else bundle["drug_ids"]
+    preds = score_pairs(bundle, [sample], [(0, d) for d in ids])
+    id_to_name = bundle["id_to_name"]
     return {id_to_name[d]: float(p) for d, p in zip(ids, preds)}

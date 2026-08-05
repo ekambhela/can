@@ -308,18 +308,29 @@ def feature_schema() -> dict:
 # ---------------------------------------------------------------------------
 # Prediction
 # ---------------------------------------------------------------------------
-def _score(bundle: dict, sample: dict, drug_ids=None) -> dict:
-    """Blended sensitivity per drug name: w*per-drug + (1-w)*multi-task."""
-    ids = drug_ids if drug_ids is not None else bundle["drug_ids"]
+def _score_pairs(bundle: dict, samples: list[dict], pairs) -> np.ndarray:
+    """Blended sensitivity for (sample, drug) pairs: w*per-drug + (1-w)*multi-task.
+
+    `pairs` is [(sample_index, drug_id), ...]. One predict call to the
+    multi-task model and one per distinct drug to the per-drug boosters, no
+    matter how many pairs — see mtl.score_pairs / perdrug.score_pairs.
+    """
+    if not pairs:
+        return np.empty(0, dtype=float)
     w = bundle.get("blend_w_perdrug", 0.35)
-    mt = mtl.score_sample(bundle, sample, drug_ids=ids)
-    pd_scores = perdrug.score_sample(bundle["per_drug_models"], sample,
-                                     bundle["cell_cols"], ids, bundle["id_to_name"])
-    out = {}
-    for n in set(mt) | set(pd_scores):
-        a, b = pd_scores.get(n), mt.get(n)
-        out[n] = a if b is None else (b if a is None else w * a + (1 - w) * b)
-    return out
+    mt = np.asarray(mtl.score_pairs(bundle, samples, pairs), dtype=float)
+    pdv = perdrug.score_pairs(bundle["per_drug_models"], samples,
+                              bundle["cell_cols"], pairs, bundle["id_to_name"])
+    # NaN = this drug has no per-drug model; fall back to the multi-task score.
+    return np.where(np.isnan(pdv), mt, w * pdv + (1 - w) * mt)
+
+
+def _score(bundle: dict, sample: dict, drug_ids=None) -> dict:
+    """Blended sensitivity per drug name, for one sample."""
+    ids = drug_ids if drug_ids is not None else bundle["drug_ids"]
+    vals = _score_pairs(bundle, [sample], [(0, d) for d in ids])
+    id_to_name = bundle["id_to_name"]
+    return {id_to_name[d]: float(v) for d, v in zip(ids, vals)}
 
 
 def _pct(z: float) -> float:
@@ -365,30 +376,59 @@ def _separation_score(zs: np.ndarray, resid_top: float = 0.6) -> float:
     return float(np.clip(norm.cdf(z), 0.01, 0.99))
 
 
+def _explain_all(sample: dict, therapies: list[str], bundle: dict) -> dict:
+    """Attribution for SEVERAL drugs at once: the effect of each present feature
+    on each drug's predicted sensitivity, by toggling it off.
+
+    Same arithmetic as scoring each (drug, toggled-feature) variant separately —
+    tree prediction is row-independent — but assembled into one design matrix.
+    The per-drug version cost up to 8 drugs x 15 features x 2 models = ~240
+    predict calls per request; this is one multi-task call plus one call per
+    drug, whatever the feature count.
+
+    Returns {therapy: {"supporting": [...], "cautions": [...]}}.
+    """
+    present = [f for f in MUTATION_FEATURES + [ERBB2_AMP, MSI]
+               if float(sample.get(f, 0)) >= 0.5]
+
+    # Row 0 is the sample as given; row i+1 has feature `present[i]` toggled off.
+    variants = [sample] + [{**sample, f: 0.0} for f in present]
+
+    pairs, index = [], {}
+    for t in therapies:
+        did = bundle["name_to_id"][t]
+        index[t] = (len(pairs), len(pairs) + len(variants))
+        pairs.extend((vi, did) for vi in range(len(variants)))
+    vals = _score_pairs(bundle, variants, pairs)
+
+    out = {}
+    for t in therapies:
+        lo, _hi = index[t]
+        base_pct = _pct(vals[lo])
+        supporting, cautions = [], []
+        for i, f in enumerate(present, start=1):
+            eff_pct = base_pct - _pct(vals[lo + i])
+            if abs(eff_pct) < 1.5:
+                continue
+            item = {"feature": f, "label": FEATURE_LABEL.get(f, f),
+                    "effect_pct": round(eff_pct, 1),
+                    "text": BIOMARKER_NOTE.get(
+                        f, f"{FEATURE_LABEL.get(f, f)} shifts predicted response.")}
+            (supporting if eff_pct > 0 else cautions).append(item)
+        supporting.sort(key=lambda d: -d["effect_pct"])
+        cautions.sort(key=lambda d: d["effect_pct"])
+        if not supporting:
+            supporting.append({"feature": None, "label": "Tissue & overall profile",
+                               "effect_pct": None,
+                               "text": "Selected mainly from the tissue type and "
+                                       "overall genomic profile."})
+        out[t] = {"supporting": supporting, "cautions": cautions}
+    return out
+
+
 def _explain(sample: dict, therapy: str, bundle: dict) -> dict:
-    """Data-driven attribution: effect of each present feature on this drug's
-    predicted sensitivity, by toggling it off and measuring the change."""
-    did = bundle["name_to_id"][therapy]
-    base = _score(bundle, sample, drug_ids=[did])[therapy]
-    supporting, cautions = [], []
-    for f in MUTATION_FEATURES + [ERBB2_AMP, MSI]:
-        if float(sample.get(f, 0)) < 0.5:
-            continue
-        off = dict(sample)
-        off[f] = 0.0
-        eff_pct = _pct(base) - _pct(_score(bundle, off, drug_ids=[did])[therapy])
-        if abs(eff_pct) < 1.5:
-            continue
-        item = {"feature": f, "label": FEATURE_LABEL.get(f, f),
-                "effect_pct": round(eff_pct, 1),
-                "text": BIOMARKER_NOTE.get(f, f"{FEATURE_LABEL.get(f, f)} shifts predicted response.")}
-        (supporting if eff_pct > 0 else cautions).append(item)
-    supporting.sort(key=lambda d: -d["effect_pct"])
-    cautions.sort(key=lambda d: d["effect_pct"])
-    if not supporting:
-        supporting.append({"feature": None, "label": "Tissue & overall profile", "effect_pct": None,
-                           "text": "Selected mainly from the tissue type and overall genomic profile."})
-    return {"supporting": supporting, "cautions": cautions}
+    """Single-drug attribution (thin wrapper over _explain_all)."""
+    return _explain_all(sample, [therapy], bundle)[therapy]
 
 
 def predict(sample: dict, top_k: int | None = 8, exclude_low_reliability: bool | None = None) -> dict:
@@ -425,10 +465,12 @@ def _predict_impl(sample: dict, top_k: int | None = 8, excl: bool = False) -> di
     pcts = {n: _pct(zs[n]) for n in names}
     margin = round((pcts[order[0]] - pcts[order[1]]) / 100.0, 4) if len(order) > 1 else 0.0
 
+    explanations = _explain_all(sample, order, bundle)   # one batched pass
+
     ranked = []
     for rank, n in enumerate(order, start=1):
         rs = resid.get(n, 0.6)
-        exp = _explain(sample, n, bundle)
+        exp = explanations[n]
         r = rel.get(n, {})
         tier = r.get("tier", "unknown")
         ranked.append({
@@ -463,6 +505,30 @@ def _predict_impl(sample: dict, top_k: int | None = 8, excl: bool = False) -> di
     }
 
 
+# Cohort scoring materializes chunk_size x n_drugs rows at once. 64 samples x
+# ~369 drugs is ~24k rows — enough to amortize the per-call overhead completely,
+# small enough that a 500-row cohort never builds a 185k-row frame.
+COHORT_CHUNK = 64
+
+
+def _score_cohort(bundle: dict, samples: list[dict], chunk: int = COHORT_CHUNK):
+    """Yield {drug_name: sensitivity} per sample, scoring in batches.
+
+    The per-sample path called each of the ~369 boosters on a single row, so a
+    500-row cohort meant ~184,500 one-row predict calls. Here each booster is
+    called once per chunk.
+    """
+    ids = bundle["drug_ids"]
+    id_to_name = bundle["id_to_name"]
+    for start in range(0, len(samples), chunk):
+        block = samples[start:start + chunk]
+        pairs = [(si, d) for si in range(len(block)) for d in ids]
+        vals = _score_pairs(bundle, block, pairs)
+        per_sample = vals.reshape(len(block), len(ids))
+        for row in per_sample:
+            yield {id_to_name[d]: float(v) for d, v in zip(ids, row)}
+
+
 def predict_batch(samples: list[dict], exclude_low_reliability: bool | None = None) -> dict:
     bundle = get_bundle()
     meta = bundle["drug_meta"]
@@ -472,8 +538,7 @@ def predict_batch(samples: list[dict], exclude_low_reliability: bool | None = No
     excl = EXCLUDE_LOW_RELIABILITY if exclude_low_reliability is None else exclude_low_reliability
 
     rows = []
-    for i, s in enumerate(samples):
-        zs = _score(bundle, s)
+    for i, (s, zs) in enumerate(zip(samples, _score_cohort(bundle, samples))):
         candidates = list(zs)
         if excl:
             candidates = [n for n in candidates
