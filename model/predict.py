@@ -15,6 +15,7 @@ sensitivity percentile (norm CDF): "more sensitive than X% of cell lines".
 from __future__ import annotations
 
 import io
+import itertools
 import json
 import logging
 import os
@@ -103,6 +104,28 @@ def load_bundle() -> dict:
     # model.joblib artifacts we produced ourselves (see model/train.py). Never
     # point MODEL_PATH at an untrusted file — a malicious pickle can run code.
     return joblib.load(MODEL_PATH)
+
+
+_LOAD_SERIAL = itertools.count(1)
+
+
+def _bundle_token(bundle: dict) -> int:
+    """A stable, never-reused id for a loaded bundle, for use as a cache key.
+
+    The prediction cache used to be keyed on id(load_bundle()). CPython reuses
+    address values once an object is freed, so after load_bundle.cache_clear()
+    (which the tests call, and any reload path would) a newly loaded bundle can
+    land on the freed address of the old one and inherit its cached predictions
+    — silently serving results from the previous model.
+
+    Tokens come from a monotonic counter and are stamped onto the bundle itself,
+    so they are unique per loaded object, never recycled, and survive for
+    exactly as long as the bundle they identify.
+    """
+    token = bundle.get("_cache_token")
+    if token is None:
+        token = bundle["_cache_token"] = next(_LOAD_SERIAL)
+    return token
 
 
 def get_bundle() -> dict:
@@ -436,12 +459,13 @@ def predict(sample: dict, top_k: int | None = 8, exclude_low_reliability: bool |
     repeated/identical inputs — e.g. the built-in example files — are instant."""
     items = tuple(sorted(sample.items()))
     excl = EXCLUDE_LOW_RELIABILITY if exclude_low_reliability is None else exclude_low_reliability
-    # id(bundle) keys the cache to the loaded model, so a reload invalidates it.
-    return dict(_predict_cached(id(get_bundle()), items, top_k, excl))
+    # Keyed to the loaded bundle by a non-recyclable token, so a reload can never
+    # inherit the previous model's cached predictions. See _bundle_token.
+    return dict(_predict_cached(_bundle_token(get_bundle()), items, top_k, excl))
 
 
 @lru_cache(maxsize=2048)
-def _predict_cached(_bundle_id: int, items: tuple, top_k: int | None, excl: bool) -> dict:
+def _predict_cached(_bundle_token: int, items: tuple, top_k: int | None, excl: bool) -> dict:
     return _predict_impl(dict(items), top_k, excl)
 
 
